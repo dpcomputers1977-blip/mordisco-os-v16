@@ -4,7 +4,7 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const money=n=>new Intl.NumberFormat("es-EC",{style:"currency",currency:"USD"}).format(Number(n||0));
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-let sessionStaff=null, sessionPin="", products=[],categories=[],customers=[],posCart=[],commandCart=[],selectedTable=null,paymentOrder=null;
+let sessionStaff=null, sessionPin="", products=[],categories=[],customers=[],paymentMethods=[],posCart=[],commandCart=[],selectedTable=null,paymentOrder=null;
 
 function toast(message){const t=$("#toast");t.textContent=message;t.style.display="block";clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display="none",2800)}
 function roleLabel(r){return({admin:"Administrador",cashier:"Cajero",waiter:"Mesero",kitchen:"Cocina"})[r]||r}
@@ -43,6 +43,17 @@ function showView(name){
   $(".sidebar").classList.remove("open");
   ({dashboard:loadDashboard,pos:loadPos,commands:loadCommands,kitchen:loadKitchen,products:loadProductsAdmin,inventory:loadInventory,customers:loadCustomers,staff:loadStaffAdmin,accounting:loadAccounting})[name]?.();
 }
+
+async function loadPaymentMethods(){
+  const {data,error}=await db.from("v16_payment_methods").select("*").eq("active",true).order("sort_order");
+  if(error){toast(error.message);paymentMethods=[];return}
+  paymentMethods=data||[];
+  const select=$("#paymentMethod");
+  if(select){
+    select.innerHTML=paymentMethods.map(m=>`<option value="${m.code}" data-cash="${m.requires_cash}">${esc(m.name)}</option>`).join("");
+  }
+}
+
 async function loadCatalog(){
   const [p,c,u]=await Promise.all([
     db.from("v16_products").select("*,v16_categories(name)").eq("active",true).order("name"),
@@ -55,7 +66,7 @@ async function loadCatalog(){
 async function loadDashboard(){
   const start=todayISO()+"T00:00:00";
   const [orders,inventory]=await Promise.all([
-    db.from("v16_orders").select("id,order_number,total,status,payment_status,created_at,order_type").gte("created_at",start).order("created_at",{ascending:false}),
+    db.from("v16_orders").select("id,order_number,total,status,payment_status,payment_method,created_at,order_type").gte("created_at",start).order("created_at",{ascending:false}),
     db.from("v16_inventory").select("stock,minimum_stock")
   ]);
   const rows=orders.data||[];
@@ -70,9 +81,15 @@ async function loadDashboard(){
     ["Listas",rows.filter(x=>x.status==="ready").length],
     ["Pendientes de cobro",rows.filter(x=>x.payment_status==="unpaid").length]
   ].map(x=>`<div><span>${x[0]}</span><b>${x[1]}</b></div>`).join("");
+  if(!paymentMethods.length) await loadPaymentMethods();
+  $("#paymentSummary").innerHTML=paymentMethods.map(m=>{
+    const amount=rows.filter(x=>x.payment_status==="paid"&&x.payment_method===m.code).reduce((s,x)=>s+Number(x.total),0);
+    const count=rows.filter(x=>x.payment_status==="paid"&&x.payment_method===m.code).length;
+    return `<div><span>${esc(m.name)} <small>(${count})</small></span><b>${money(amount)}</b></div>`;
+  }).join("")||"Sin métodos configurados";
 }
 async function loadPos(){
-  await loadCatalog();
+  await Promise.all([loadCatalog(),loadPaymentMethods()]);
   $("#posCustomer").innerHTML='<option value="">Consumidor final</option>'+customers.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");
   renderCategoryChips("#posCategories",renderPosProducts);
   renderPosProducts();renderPosCart();loadPendingPayments();
@@ -120,11 +137,30 @@ async function loadPendingPayments(){
   $("#pendingPayments").innerHTML=(data||[]).map(o=>`<div class="pending-card"><div><b>#${o.order_number}</b><small> ${o.source==="command"?"Comanda":"Caja"}</small></div><strong>${money(o.total)}</strong><button data-pay="${o.id}">Cobrar</button></div>`).join("")||"No hay cuentas pendientes";
   $("#pendingPayments").querySelectorAll("[data-pay]").forEach(b=>b.onclick=async()=>{const {data}=await db.from("v16_orders").select("*").eq("id",b.dataset.pay).single();openPayment(data)});
 }
-function openPayment(order){paymentOrder=order;$("#paymentTitle").textContent=`Cobrar orden #${order.order_number}`;$("#paymentTotal").textContent=money(order.total);$("#paymentReceived").value=Number(order.total).toFixed(2);updateChange();$("#paymentModal").classList.remove("hidden")}
-function updateChange(){const cash=$("#paymentMethod").value==="cash";$("#receivedWrap").classList.toggle("hidden",!cash);$("#changeRow").classList.toggle("hidden",!cash);$("#paymentChange").textContent=money(Math.max(0,Number($("#paymentReceived").value||0)-Number(paymentOrder?.total||0)))}
+async function openPayment(order){
+  paymentOrder=order;
+  if(!paymentMethods.length) await loadPaymentMethods();
+  $("#paymentTitle").textContent=`Cobrar orden #${order.order_number}`;
+  $("#paymentTotal").textContent=money(order.total);
+  $("#paymentReceived").value=Number(order.total).toFixed(2);
+  updateChange();
+  $("#paymentModal").classList.remove("hidden");
+}
+function selectedMethod(){
+  return paymentMethods.find(m=>m.code===$("#paymentMethod").value);
+}
+function updateChange(){
+  const method=selectedMethod();
+  const cash=Boolean(method?.requires_cash);
+  $("#receivedWrap").classList.toggle("hidden",!cash);
+  $("#changeRow").classList.toggle("hidden",!cash);
+  $("#paymentChange").textContent=money(Math.max(0,Number($("#paymentReceived").value||0)-Number(paymentOrder?.total||0)));
+}
 async function confirmPayment(){
-  const method=$("#paymentMethod").value,received=method==="cash"?Number($("#paymentReceived").value||0):Number(paymentOrder.total);
-  if(method==="cash"&&received<Number(paymentOrder.total))return toast("El efectivo recibido es menor al total");
+  const methodInfo=selectedMethod();
+  if(!methodInfo)return toast("Selecciona una forma de pago");
+  const method=methodInfo.code,received=methodInfo.requires_cash?Number($("#paymentReceived").value||0):Number(paymentOrder.total);
+  if(methodInfo.requires_cash&&received<Number(paymentOrder.total))return toast("El efectivo recibido es menor al total");
   const {error}=await db.rpc("v16_pay_order",{p_order_id:paymentOrder.id,p_method:method,p_received:received,p_staff_id:sessionStaff.id,p_pin:sessionPin});
   if(error)return toast(error.message);
   $("#paymentModal").classList.add("hidden");toast("Cobro registrado correctamente");loadPendingPayments();loadDashboard();
@@ -162,12 +198,24 @@ async function loadStaffAdmin(){
   $("#staffList").querySelectorAll("[data-toggle]").forEach(b=>b.onclick=async()=>{const {error}=await db.rpc("v16_toggle_staff",{p_target_id:b.dataset.toggle,p_active:b.dataset.active!=="true",p_admin_id:sessionStaff.id,p_pin:sessionPin});if(error)return toast(error.message);loadStaffAdmin()});
 }
 async function loadAccounting(){
+  if(!paymentMethods.length) await loadPaymentMethods();
   const start=todayISO()+"T00:00:00";
   const [sales,expenses]=await Promise.all([db.from("v16_orders").select("total,paid_at,order_number,payment_method").eq("payment_status","paid").gte("paid_at",start),db.from("v16_expenses").select("*").gte("created_at",start).order("created_at",{ascending:false})]);
   const income=(sales.data||[]).reduce((s,x)=>s+Number(x.total),0),expense=(expenses.data||[]).reduce((s,x)=>s+Number(x.amount),0);
   $("#accountIncome").textContent=money(income);$("#accountExpense").textContent=money(expense);$("#accountResult").textContent=money(income-expense);
-  const movements=[...(sales.data||[]).map(x=>({date:x.paid_at,label:`Venta #${x.order_number}`,amount:x.total,type:"income"})),...(expenses.data||[]).map(x=>({date:x.created_at,label:x.description,amount:x.amount,type:"expense"}))].sort((a,b)=>new Date(b.date)-new Date(a.date));
-  $("#accountingList").innerHTML=movements.map(m=>`<div class="list-row"><div><b>${esc(m.label)}</b><small> ${new Date(m.date).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})}</small></div><strong>${m.type==="expense"?"−":"+"}${money(m.amount)}</strong></div>`).join("")||"Sin movimientos hoy";
+  const movements=[...(sales.data||[]).map(x=>({date:x.paid_at,label:`Venta #${x.order_number} · ${esc(paymentMethods.find(m=>m.code===x.payment_method)?.name||x.payment_method||"Sin método")}`,amount:x.total,type:"income"})),...(expenses.data||[]).map(x=>({date:x.created_at,label:x.description,amount:x.amount,type:"expense"}))].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  $("#accountingList").innerHTML=movements.map(m=>`<div class="list-row"><div><b>${m.label}</b><small> ${new Date(m.date).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})}</small></div><strong>${m.type==="expense"?"−":"+"}${money(m.amount)}</strong></div>`).join("")||"Sin movimientos hoy";
+  await loadPaymentMethodsAdmin();
+}
+async function loadPaymentMethodsAdmin(){
+  const {data,error}=await db.from("v16_payment_methods").select("*").order("sort_order");
+  if(error)return toast(error.message);
+  $("#paymentMethodsList").innerHTML=(data||[]).map(m=>`<div class="list-row"><div><b>${esc(m.name)}</b><small> Código: ${esc(m.code)}${m.requires_cash?" · maneja cambio":""}</small></div><span class="badge ${m.active?"paid":"pending"}">${m.active?"Activo":"Inactivo"}</span><button data-method-toggle="${m.id}" data-active="${m.active}">${m.active?"Desactivar":"Activar"}</button></div>`).join("");
+  $("#paymentMethodsList").querySelectorAll("[data-method-toggle]").forEach(b=>b.onclick=async()=>{
+    const {error}=await db.rpc("v16_toggle_payment_method",{p_method_id:b.dataset.methodToggle,p_active:b.dataset.active!=="true",p_admin_id:sessionStaff.id,p_pin:sessionPin});
+    if(error)return toast(error.message);
+    await loadPaymentMethods();loadPaymentMethodsAdmin();
+  });
 }
 $("#loginButton").onclick=login;$("#loginPin").onkeydown=e=>{if(e.key==="Enter")login()};$("#logoutButton").onclick=logout;$("#menuButton").onclick=()=>$(".sidebar").classList.toggle("open");
 $$("#mainNav button").forEach(b=>b.onclick=()=>showView(b.dataset.view));
@@ -181,4 +229,14 @@ $("#inventoryForm").onsubmit=async e=>{e.preventDefault();const f=Object.fromEnt
 $("#customerForm").onsubmit=async e=>{e.preventDefault();const {error}=await db.from("v16_customers").insert(Object.fromEntries(new FormData(e.target)));if(error)return toast(error.message);e.target.reset();toast("Cliente guardado");loadCustomers()};
 $("#staffForm").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));const {error}=await db.rpc("v16_create_staff",{p_name:f.name,p_role:f.role,p_pin:f.pin,p_admin_id:sessionStaff.id,p_admin_pin:sessionPin});if(error)return toast(error.message);e.target.reset();toast("Empleado creado");loadStaffAdmin()};
 $("#expenseForm").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));f.amount=Number(f.amount);f.created_by=sessionStaff.id;const {error}=await db.from("v16_expenses").insert(f);if(error)return toast(error.message);e.target.reset();toast("Egreso registrado");loadAccounting()};
-(async()=>{const saved=sessionStorage.getItem("mordisco_staff"),pin=sessionStorage.getItem("mordisco_pin");if(saved&&pin){sessionStaff=JSON.parse(saved);sessionPin=pin;enterApp()}else loadLoginStaff()})();
+$("#addPaymentMethod").onclick=async()=>{
+  const name=prompt("Nombre del método de pago:");
+  if(!name)return;
+  const code=name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
+  if(!code)return toast("Nombre inválido");
+  const {error}=await db.rpc("v16_create_payment_method",{p_name:name.trim(),p_code:code,p_admin_id:sessionStaff.id,p_pin:sessionPin});
+  if(error)return toast(error.message);
+  toast("Método de pago agregado");
+  await loadPaymentMethods();loadPaymentMethodsAdmin();
+};
+(async()=>{const saved=sessionStorage.getItem("mordisco_staff"),pin=sessionStorage.getItem("mordisco_pin");if(saved&&pin){sessionStaff=JSON.parse(saved);sessionPin=pin;await loadPaymentMethods();enterApp()}else{await loadPaymentMethods();loadLoginStaff()}})();

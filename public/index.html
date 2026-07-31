@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#15120e">
   <title>Mordisco OS V16</title>
   <link rel="icon" href="/icon-192.png">
-  <link rel="stylesheet" href="/styles.css?v=16.0.0">
+  <link rel="stylesheet" href="/styles.css?v=16.1.0">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -72,7 +72,13 @@
         </div>
         <div class="grid-two">
           <section class="panel"><div class="panel-head"><h3>Actividad reciente</h3><button onclick="loadDashboard()">Actualizar</button></div><div id="recentOrders"></div></section>
-          <section class="panel"><div class="panel-head"><h3>Resumen operativo</h3></div><div id="operationsSummary" class="summary-list"></div></section>
+          <section class="panel">
+            <div class="panel-head"><h3>Resumen operativo</h3></div>
+            <div id="operationsSummary" class="summary-list"></div>
+            <hr>
+            <h3>Ventas por forma de pago</h3>
+            <div id="paymentSummary" class="summary-list"></div>
+          </section>
         </div>
       </section>
 
@@ -210,7 +216,13 @@
               <button class="primary">Registrar</button>
             </form>
           </section>
-          <section class="panel"><div class="panel-head"><h3>Movimientos recientes</h3><button onclick="loadAccounting()">Actualizar</button></div><div id="accountingList"></div></section>
+          <section class="panel">
+            <div class="panel-head"><h3>Movimientos recientes</h3><button onclick="loadAccounting()">Actualizar</button></div>
+            <div id="accountingList"></div>
+            <hr>
+            <div class="panel-head"><h3>Métodos de pago</h3><button id="addPaymentMethod">Agregar</button></div>
+            <div id="paymentMethodsList"></div>
+          </section>
         </div>
       </section>
     </section>
@@ -223,7 +235,7 @@
       <h2 id="paymentTitle">Cobrar orden</h2>
       <div class="payment-total"><span>Total</span><strong id="paymentTotal">$0.00</strong></div>
       <label>Método de pago
-        <select id="paymentMethod"><option value="cash">Efectivo</option><option value="card">Tarjeta</option><option value="transfer">Transferencia</option></select>
+        <select id="paymentMethod"><option value="">Cargando métodos…</option></select>
       </label>
       <label id="receivedWrap">Efectivo recibido<input id="paymentReceived" type="number" step=".01"></label>
       <div id="changeRow" class="total-row"><span>Cambio</span><strong id="paymentChange">$0.00</strong></div>
@@ -231,6 +243,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=16.0.0"></script>
+  <script src="/app.js?v=16.1.0"></script>
 </body>
 </html>
