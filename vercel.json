@@ -4,27 +4,27 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/website.html"
-    },
-    {
-      "source": "/admin",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/caja",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/comandas",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/cocina",
-      "destination": "/index.html"
+      "destination": "/website"
     },
     {
       "source": "/pedir",
-      "destination": "/online.html"
+      "destination": "/online"
+    },
+    {
+      "source": "/admin",
+      "destination": "/index"
+    },
+    {
+      "source": "/caja",
+      "destination": "/index"
+    },
+    {
+      "source": "/comandas",
+      "destination": "/index"
+    },
+    {
+      "source": "/cocina",
+      "destination": "/index"
     }
   ]
 }
