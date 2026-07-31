@@ -502,7 +502,32 @@ $("#staffForm").onsubmit=async e=>{
   if(error)return toast(error.message);
   e.target.reset();toast("Empleado creado");loadStaffAdmin();
 };
-$("#staffSearch").oninput=renderStaffRows;
+const staffSearchEl = $("#staffSearch");
+if (staffSearchEl) {
+  staffSearchEl.addEventListener("input", renderStaffRows);
+}
+
+const closeStaffEditEl = $("#closeStaffEdit");
+if (closeStaffEditEl) {
+  closeStaffEditEl.addEventListener("click", () => {
+    $("#staffEditModal")?.classList.add("hidden");
+  });
+}
+
+const saveStaffEditEl = $("#saveStaffEdit");
+if (saveStaffEditEl) {
+  saveStaffEditEl.addEventListener("click", saveStaffEdit);
+}
+
+const refreshShiftsEl = $("#refreshShifts");
+if (refreshShiftsEl) {
+  refreshShiftsEl.addEventListener("click", loadShiftAdmin);
+}
+
+const refreshActivityEl = $("#refreshActivity");
+if (refreshActivityEl) {
+  refreshActivityEl.addEventListener("click", loadStaffActivity);
+}
 $("#closeStaffEdit").onclick=()=>$("#staffEditModal").classList.add("hidden");
 $("#saveStaffEdit").onclick=saveStaffEdit;
 $("#refreshShifts").onclick=loadShiftAdmin;
