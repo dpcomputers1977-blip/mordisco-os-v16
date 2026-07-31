@@ -1,26 +1,4 @@
 {
   "outputDirectory": "public",
-  "cleanUrls": true,
-  "rewrites": [
-    {
-      "source": "/pedir",
-      "destination": "/online"
-    },
-    {
-      "source": "/admin",
-      "destination": "/admin"
-    },
-    {
-      "source": "/caja",
-      "destination": "/admin"
-    },
-    {
-      "source": "/comandas",
-      "destination": "/admin"
-    },
-    {
-      "source": "/cocina",
-      "destination": "/admin"
-    }
-  ]
+  "cleanUrls": false
 }
