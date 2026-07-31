@@ -3,6 +3,10 @@
   "cleanUrls": true,
   "rewrites": [
     {
+      "source": "/",
+      "destination": "/website.html"
+    },
+    {
       "source": "/admin",
       "destination": "/index.html"
     },
@@ -17,6 +21,10 @@
     {
       "source": "/cocina",
       "destination": "/index.html"
+    },
+    {
+      "source": "/pedir",
+      "destination": "/online.html"
     }
   ]
 }
