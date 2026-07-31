@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#15120e">
+  <title>Mordisco OS Admin V16</title>
+  <link rel="icon" href="/icon-192.png">
+  <link rel="stylesheet" href="/styles.css?v=16.6.0">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div id="toast"></div>
+
+  <main id="loginView" class="login-shell">
+    <section class="login-card">
+      <img src="/logo.png" alt="Mordisco Fast Food" class="login-logo">
+      <span class="eyebrow">MORDISCO OS V16</span>
+      <h1>Acceso de empleados</h1>
+      <p>Selecciona tu usuario e ingresa tu PIN.</p>
+      <label>Empleado
+        <select id="loginStaff"><option>Cargando empleados…</option></select>
+      </label>
+      <label>PIN
+        <input id="loginPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••">
+      </label>
+      <button id="loginButton" class="primary">Ingresar</button>
+      <small>Primer acceso: Administrador · PIN 1234</small>
+    </section>
+  </main>
+
+  <div id="appView" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="/logo.png" alt="">
+        <div><b>Mordisco OS</b><small>Versión 16</small></div>
+      </div>
+      <nav id="mainNav">
+        <button data-view="dashboard" data-roles="admin">📊 Dashboard</button>
+        <button data-view="pos" data-roles="admin,cashier">💵 Caja / POS</button>
+<button data-view="online" data-roles="admin">🌐 Pedidos web</button>
+        <button data-view="commands" data-roles="admin,waiter">🍽️ Comandas</button>
+        <button data-view="kitchen" data-roles="admin,kitchen">👨‍🍳 Cocina</button>
+        <button data-view="products" data-roles="admin">🍔 Productos</button>
+        <button data-view="inventory" data-roles="admin">📦 Inventario</button>
+        <button data-view="customers" data-roles="admin">👥 Clientes</button>
+        <button data-view="staff" data-roles="admin">👨‍💼 Empleados</button>
+        <button data-view="accounting" data-roles="admin">💰 Contabilidad</button>
+      </nav>
+      <div class="sidebar-user">
+        <b id="currentUserName"></b>
+        <span id="currentUserRole"></span><small id="roleAccessInfo" class="role-access-info"></small>
+        <button id="logoutButton">Cerrar sesión</button>
+      </div>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <button id="menuButton" class="menu-button">☰</button>
+        <div>
+          <span class="eyebrow">MORDISCO FAST FOOD</span>
+          <h2 id="pageTitle">Dashboard</h2>
+        </div>
+        <div class="live-status"><span></span><b id="syncStatus">Sincronizado</b></div>
+        <div class="clock" id="clock"></div>
+      </header>
+
+      <section id="view-dashboard" class="view">
+        <div class="cards">
+          <article><span>Ventas de hoy</span><strong id="metricSales">$0.00</strong></article>
+          <article><span>Órdenes cobradas</span><strong id="metricPaid">0</strong></article>
+          <article><span>En cocina</span><strong id="metricKitchen">0</strong></article>
+          <article><span>Stock bajo</span><strong id="metricStock">0</strong></article>
+        </div>
+        <div class="grid-two">
+          <section class="panel"><div class="panel-head"><h3>Actividad reciente</h3><button onclick="loadDashboard()">Actualizar</button></div><div id="recentOrders"></div></section>
+          <section class="panel">
+            <div class="panel-head"><h3>Resumen operativo</h3></div>
+            <div id="operationsSummary" class="summary-list"></div>
+            <hr>
+            <h3>Ventas por forma de pago</h3>
+            <div id="paymentSummary" class="summary-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="view-pos" class="view hidden">
+        <div class="pos-layout">
+          <section class="panel">
+            <div class="panel-head"><h3>Productos</h3><input id="posSearch" placeholder="Buscar producto"></div>
+            <div id="posCategories" class="chips"></div>
+            <div id="posProducts" class="product-grid"></div>
+          </section>
+          <aside class="panel cart-panel">
+            <div class="panel-head"><h3>Cuenta de Caja</h3><button id="openCashClose">Cierre de caja</button></div>
+            <label>Cliente <select id="posCustomer"><option value="">Consumidor final</option></select></label>
+            <label>Tipo
+              <select id="posOrderType"><option value="local">Local</option><option value="takeaway">Para llevar</option></select>
+            </label>
+            <div id="posCart" class="cart-lines"></div>
+            <div class="total-row"><span>Total</span><strong id="posTotal">$0.00</strong></div>
+            <button id="sendPosKitchen">Enviar a Cocina y cobrar después</button>
+            <button id="chargePos" class="primary">Cobrar ahora</button>
+            <hr>
+            <h4>Órdenes pendientes de cobro</h4>
+            <div id="pendingPayments"></div>
+            <hr>
+            <h4>Resumen de hoy</h4>
+            <div id="posPaymentSummary" class="summary-list"></div>
+            <div class="pos-day-total"><span>Total vendido</span><strong id="posDayTotal">$0.00</strong></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="view-online" class="view hidden">
+<div class="panel"><div class="panel-head"><div><h3>Pedidos recibidos desde la web</h3><small>Confirma antes de enviar a Cocina.</small></div><button id="refreshOnlineOrders">Actualizar</button></div><div id="onlineOrdersList" class="online-orders-list"></div></div>
+</section>
+<section id="view-commands" class="view hidden">
+        <div class="grid-two commands-grid">
+          <section class="panel">
+            <div class="panel-head"><h3>Mesas</h3><button id="refreshTables">Actualizar</button></div>
+            <div id="tablesGrid" class="tables-grid"></div>
+          </section>
+          <section class="panel">
+            <h3 id="commandTitle">Selecciona una mesa</h3>
+            <div id="commandBuilder" class="hidden">
+              <div class="chips" id="commandCategories"></div>
+              <input id="commandSearch" placeholder="Buscar producto">
+              <div id="commandProducts" class="product-grid compact"></div>
+              <div id="commandCart" class="cart-lines"></div>
+              <div class="total-row"><span>Total</span><strong id="commandTotal">$0.00</strong></div>
+              <textarea id="commandNotes" placeholder="Notas para Cocina"></textarea>
+              <button id="sendCommand" class="primary">Enviar comanda a Cocina</button>
+              <p class="notice">Comandas no cobra. El pago se realiza exclusivamente en Caja.</p>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="view-kitchen" class="view hidden">
+        <div class="panel">
+          <div class="panel-head"><h3>Monitor de Cocina</h3><button id="refreshKitchen">Actualizar</button></div>
+          <div id="kitchenBoard" class="kitchen-board"></div>
+        </div>
+      </section>
+
+      <section id="view-products" class="view hidden">
+        <div class="grid-two">
+          <section class="panel">
+            <h3>Nuevo producto</h3>
+            <form id="productForm" class="form-grid">
+              <input name="name" placeholder="Nombre" required>
+              <input name="price" type="number" min="0" step=".01" placeholder="Precio" required>
+              <select name="category_id" id="productCategory"></select>
+              <input name="image_url" placeholder="URL de imagen">
+              <textarea name="description" placeholder="Descripción"></textarea>
+              <button class="primary">Guardar producto</button>
+            </form>
+          </section>
+          <section class="panel"><div class="panel-head"><h3>Productos activos</h3><button onclick="loadProductsAdmin()">Actualizar</button></div><div id="productsAdmin"></div></section>
+        </div>
+      </section>
+
+      <section id="view-inventory" class="view hidden">
+        <div class="grid-two">
+          <section class="panel">
+            <h3>Registrar ingrediente</h3>
+            <form id="inventoryForm" class="form-grid">
+              <input name="name" placeholder="Ingrediente" required>
+              <input name="unit" placeholder="Unidad (kg, und, litro)" required>
+              <input name="stock" type="number" step=".01" placeholder="Stock actual" required>
+              <input name="minimum_stock" type="number" step=".01" placeholder="Stock mínimo" required>
+              <input name="cost" type="number" step=".01" placeholder="Costo unitario">
+              <button class="primary">Guardar</button>
+            </form>
+          </section>
+          <section class="panel"><div class="panel-head"><h3>Existencias</h3><button onclick="loadInventory()">Actualizar</button></div><div id="inventoryList"></div></section>
+        </div>
+      </section>
+
+      <section id="view-customers" class="view hidden">
+        <div class="grid-two">
+          <section class="panel">
+            <h3>Nuevo cliente</h3>
+            <form id="customerForm" class="form-grid">
+              <input name="name" placeholder="Nombre" required>
+              <input name="phone" placeholder="Teléfono">
+              <input name="email" type="email" placeholder="Correo">
+              <textarea name="notes" placeholder="Notas"></textarea>
+              <button class="primary">Guardar cliente</button>
+            </form>
+          </section>
+          <section class="panel"><div class="panel-head"><h3>Clientes</h3><button onclick="loadCustomers()">Actualizar</button></div><div id="customersList"></div></section>
+        </div>
+      </section>
+
+      <section id="view-staff" class="view hidden">
+        <div class="cards staff-metrics">
+          <article><span>Empleados activos</span><strong id="staffActiveCount">0</strong></article>
+          <article><span>En turno</span><strong id="staffOnShiftCount">0</strong></article>
+          <article><span>Cajeros</span><strong id="staffCashierCount">0</strong></article>
+          <article><span>Meseros</span><strong id="staffWaiterCount">0</strong></article>
+        </div>
+        <div class="grid-two">
+          <section class="panel">
+            <h3>Nuevo empleado</h3>
+            <form id="staffForm" class="form-grid">
+              <input name="name" placeholder="Nombre completo" required>
+              <select name="role">
+                <option value="cashier">Cajero</option>
+                <option value="waiter">Mesero</option>
+                <option value="kitchen">Cocina</option>
+                <option value="admin">Administrador</option>
+              </select>
+              <input name="phone" placeholder="Teléfono">
+              <input name="hire_date" type="date">
+              <input name="pin" type="password" inputmode="numeric" maxlength="6" placeholder="PIN de 4 a 6 dígitos" required>
+              <textarea name="notes" placeholder="Observaciones"></textarea>
+              <button class="primary">Crear empleado</button>
+            </form>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <div><h3>Personal</h3><small>Edita cargos, PIN y disponibilidad.</small></div>
+              <button onclick="loadStaffAdmin()">Actualizar</button>
+            </div>
+            <input id="staffSearch" placeholder="Buscar empleado">
+            <div id="staffList" class="staff-list"></div>
+          </section>
+        </div>
+        <div class="grid-two staff-bottom-grid">
+          <section class="panel">
+            <div class="panel-head"><h3>Turnos de trabajo</h3><button id="refreshShifts">Actualizar</button></div>
+            <div id="shiftAdminList"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3>Actividad reciente</h3><button id="refreshActivity">Actualizar</button></div>
+            <div id="staffActivityList"></div>
+          </section>
+        </div>
+      </section>
+    </section>
+  </div>
+
+
+  
+  <div id="staffEditModal" class="modal hidden">
+    <div class="modal-card">
+      <button id="closeStaffEdit" class="modal-close">×</button>
+      <span class="eyebrow">GESTIÓN DE PERSONAL</span>
+      <h2>Editar empleado</h2>
+      <input id="editStaffId" type="hidden">
+      <label>Nombre<input id="editStaffName"></label>
+      <label>Cargo<select id="editStaffRole"><option value="cashier">Cajero</option><option value="waiter">Mesero</option><option value="kitchen">Cocina</option><option value="admin">Administrador</option></select></label>
+      <label>Teléfono<input id="editStaffPhone"></label>
+      <label>Fecha de ingreso<input id="editStaffHireDate" type="date"></label>
+      <label>Nuevo PIN <small>(déjalo vacío para conservarlo)</small><input id="editStaffPin" type="password" inputmode="numeric" maxlength="6"></label>
+      <label>Observaciones<textarea id="editStaffNotes"></textarea></label>
+      <button id="saveStaffEdit" class="primary payment-confirm">Guardar cambios</button>
+    </div>
+  </div>
+
+  <div id="cashCloseModal" class="modal hidden">
+    <div class="modal-card cash-close-card">
+      <button id="closeCashClose" class="modal-close">×</button>
+      <span class="eyebrow">CIERRE DE CAJA</span>
+      <h2 id="cashCloseTitle">Resumen del día</h2>
+      <div class="cash-close-summary">
+        <div><span>Ventas totales</span><strong id="cashCloseSales">$0.00</strong></div>
+        <div><span>Egresos</span><strong id="cashCloseExpenses">$0.00</strong></div>
+        <div><span>Resultado</span><strong id="cashCloseResult">$0.00</strong></div>
+      </div>
+      <div id="cashCloseMethods" class="summary-list"></div>
+      <label>Efectivo contado en caja
+        <input id="cashCounted" type="number" min="0" step=".01" value="0">
+      </label>
+      <div class="total-row"><span>Diferencia de efectivo</span><strong id="cashDifference">$0.00</strong></div>
+      <textarea id="cashCloseNotes" placeholder="Observaciones del cierre"></textarea>
+      <div class="cash-close-actions">
+        <button id="printCashClose">Imprimir</button>
+        <button id="saveCashClose" class="primary">Guardar cierre</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="paymentModal" class="modal hidden">
+    <div class="modal-card">
+      <button id="closePayment" class="modal-close">×</button>
+      <span class="eyebrow">COBRO EN CAJA</span>
+      <h2 id="paymentTitle">Cobrar orden</h2>
+      <div class="payment-total"><span>Total</span><strong id="paymentTotal">$0.00</strong></div>
+      <label>Método de pago</label>
+      <div id="paymentMethodButtons" class="payment-method-grid"></div>
+      <select id="paymentMethod" class="hidden"><option value="">Cargando métodos…</option></select>
+      <label id="receivedWrap">Efectivo recibido<input id="paymentReceived" type="number" step=".01"></label>
+      <div id="changeRow" class="total-row"><span>Cambio</span><strong id="paymentChange">$0.00</strong></div>
+      <button id="confirmPayment" class="primary payment-confirm">Confirmar cobro</button>
+      <p id="paymentStatusText" class="payment-status-text">Selecciona una forma de pago.</p>
+    </div>
+  </div>
+
+  <script src="/app.js?v=16.6.1"></script>
+</body>
+</html>
