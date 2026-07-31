@@ -3,28 +3,24 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/",
-      "destination": "/website"
-    },
-    {
       "source": "/pedir",
-      "destination": "/online"
+      "destination": "/online.html"
     },
     {
       "source": "/admin",
-      "destination": "/index"
+      "destination": "/admin.html"
     },
     {
       "source": "/caja",
-      "destination": "/index"
+      "destination": "/admin.html"
     },
     {
       "source": "/comandas",
-      "destination": "/index"
+      "destination": "/admin.html"
     },
     {
       "source": "/cocina",
-      "destination": "/index"
+      "destination": "/admin.html"
     }
   ]
 }
