@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#15120e">
   <title>Mordisco OS V16</title>
   <link rel="icon" href="/icon-192.png">
-  <link rel="stylesheet" href="/styles.css?v=16.2.0">
+  <link rel="stylesheet" href="/styles.css?v=16.3.0">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -60,6 +60,7 @@
           <span class="eyebrow">MORDISCO FAST FOOD</span>
           <h2 id="pageTitle">Dashboard</h2>
         </div>
+        <div class="live-status"><span></span><b id="syncStatus">Sincronizado</b></div>
         <div class="clock" id="clock"></div>
       </header>
 
@@ -105,6 +106,7 @@
             <hr>
             <h4>Resumen de hoy</h4>
             <div id="posPaymentSummary" class="summary-list"></div>
+            <div class="pos-day-total"><span>Total vendido</span><strong id="posDayTotal">$0.00</strong></div>
           </aside>
         </div>
       </section>
@@ -261,15 +263,16 @@
       <span class="eyebrow">COBRO EN CAJA</span>
       <h2 id="paymentTitle">Cobrar orden</h2>
       <div class="payment-total"><span>Total</span><strong id="paymentTotal">$0.00</strong></div>
-      <label>Método de pago
-        <select id="paymentMethod"><option value="">Cargando métodos…</option></select>
-      </label>
+      <label>Método de pago</label>
+      <div id="paymentMethodButtons" class="payment-method-grid"></div>
+      <select id="paymentMethod" class="hidden"><option value="">Cargando métodos…</option></select>
       <label id="receivedWrap">Efectivo recibido<input id="paymentReceived" type="number" step=".01"></label>
       <div id="changeRow" class="total-row"><span>Cambio</span><strong id="paymentChange">$0.00</strong></div>
-      <button id="confirmPayment" class="primary">Confirmar cobro</button>
+      <button id="confirmPayment" class="primary payment-confirm">Confirmar cobro</button>
+      <p id="paymentStatusText" class="payment-status-text">Selecciona una forma de pago.</p>
     </div>
   </div>
 
-  <script src="/app.js?v=16.2.0"></script>
+  <script src="/app.js?v=16.3.0"></script>
 </body>
 </html>

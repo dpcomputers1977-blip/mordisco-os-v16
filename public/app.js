@@ -4,9 +4,31 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const money=n=>new Intl.NumberFormat("es-EC",{style:"currency",currency:"USD"}).format(Number(n||0));
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-let sessionStaff=null, sessionPin="", products=[],categories=[],customers=[],paymentMethods=[],posCart=[],commandCart=[],selectedTable=null,paymentOrder=null,cashCloseData=null;
+let sessionStaff=null, sessionPin="", products=[],categories=[],customers=[],paymentMethods=[],posCart=[],commandCart=[],selectedTable=null,paymentOrder=null,cashCloseData=null,realtimeChannel=null,lastSyncAt=0;
 
 function toast(message){const t=$("#toast");t.textContent=message;t.style.display="block";clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display="none",2800)}
+function setSyncStatus(text="Sincronizado",busy=false){
+  const el=$("#syncStatus");
+  if(el)el.textContent=text;
+  document.body.classList.toggle("syncing",busy);
+}
+async function refreshActiveView(){
+  const active=$$("#mainNav button").find(b=>b.classList.contains("active"))?.dataset.view;
+  if(!active)return;
+  setSyncStatus("Actualizando…",true);
+  try{
+    if(active==="dashboard") await loadDashboard();
+    if(active==="pos"){await loadPendingPayments();await loadPosPaymentSummary()}
+    if(active==="commands") await loadCommands();
+    if(active==="kitchen") await loadKitchen();
+    if(active==="accounting") await loadAccounting();
+    lastSyncAt=Date.now();
+    setSyncStatus("Sincronizado",false);
+  }catch(error){
+    console.error(error);
+    setSyncStatus("Reintentando…",false);
+  }
+}
 function roleLabel(r){return({admin:"Administrador",cashier:"Cajero",waiter:"Mesero",kitchen:"Cocina"})[r]||r}
 function statusLabel(s){return({pending:"Pendiente",preparing:"Preparando",ready:"Lista",delivered:"Entregada",paid:"Pagada",unpaid:"Por cobrar"})[s]||s}
 function todayISO(){return new Date().toISOString().slice(0,10)}
@@ -34,6 +56,7 @@ function enterApp(){
   $$("[data-roles]").forEach(b=>b.classList.toggle("hidden",!b.dataset.roles.split(",").includes(sessionStaff.role)));
   const defaultView=({cashier:"pos",waiter:"commands",kitchen:"kitchen",admin:"dashboard"})[sessionStaff.role];
   showView(defaultView);
+  startRealtime();
 }
 function logout(){sessionStorage.clear();location.reload()}
 function showView(name){
@@ -52,6 +75,24 @@ async function loadPaymentMethods(){
   if(select){
     select.innerHTML=paymentMethods.map(m=>`<option value="${m.code}" data-cash="${m.requires_cash}">${esc(m.name)}</option>`).join("");
   }
+  renderPaymentMethodButtons();
+}
+function paymentIcon(code){
+  return ({cash:"💵",card:"💳",transfer:"🏦",de_una:"📲",ahorita:"📱"})[code]||"💰";
+}
+function renderPaymentMethodButtons(){
+  const box=$("#paymentMethodButtons");
+  if(!box)return;
+  box.innerHTML=paymentMethods.map((m,index)=>`<button type="button" class="payment-method-button ${index===0?"active":""}" data-method="${m.code}"><span>${paymentIcon(m.code)}</span><b>${esc(m.name)}</b></button>`).join("");
+  box.querySelectorAll("[data-method]").forEach(button=>{
+    button.onclick=()=>{
+      box.querySelectorAll(".payment-method-button").forEach(x=>x.classList.remove("active"));
+      button.classList.add("active");
+      $("#paymentMethod").value=button.dataset.method;
+      updateChange();
+    };
+  });
+  if(paymentMethods[0])$("#paymentMethod").value=paymentMethods[0].code;
 }
 
 async function loadCatalog(){
@@ -144,8 +185,9 @@ async function loadPosPaymentSummary(){
   $("#posPaymentSummary").innerHTML=paymentMethods.map(m=>{
     const methodRows=rows.filter(x=>x.payment_method===m.code);
     const amount=methodRows.reduce((s,x)=>s+Number(x.total),0);
-    return `<div><span>${esc(m.name)} <small>(${methodRows.length})</small></span><b>${money(amount)}</b></div>`;
+    return `<div><span>${paymentIcon(m.code)} ${esc(m.name)} <small>(${methodRows.length})</small></span><b>${money(amount)}</b></div>`;
   }).join("")||"Sin ventas hoy";
+  $("#posDayTotal").textContent=money(rows.reduce((s,x)=>s+Number(x.total),0));
 }
 
 async function loadPendingPayments(){
@@ -157,9 +199,13 @@ async function loadPendingPayments(){
 async function openPayment(order){
   paymentOrder=order;
   if(!paymentMethods.length) await loadPaymentMethods();
+  renderPaymentMethodButtons();
   $("#paymentTitle").textContent=`Cobrar orden #${order.order_number}`;
   $("#paymentTotal").textContent=money(order.total);
   $("#paymentReceived").value=Number(order.total).toFixed(2);
+  $("#paymentStatusText").textContent="Selecciona la forma de pago y confirma.";
+  $("#confirmPayment").disabled=false;
+  $("#confirmPayment").textContent="Confirmar cobro";
   updateChange();
   $("#paymentModal").classList.remove("hidden");
 }
@@ -171,20 +217,42 @@ function updateChange(){
   const cash=Boolean(method?.requires_cash);
   $("#receivedWrap").classList.toggle("hidden",!cash);
   $("#changeRow").classList.toggle("hidden",!cash);
-  $("#paymentChange").textContent=money(Math.max(0,Number($("#paymentReceived").value||0)-Number(paymentOrder?.total||0)));
+  const received=Number($("#paymentReceived").value||0);
+  const total=Number(paymentOrder?.total||0);
+  $("#paymentChange").textContent=money(Math.max(0,received-total));
+  if(!method){
+    $("#paymentStatusText").textContent="Selecciona una forma de pago.";
+  }else if(cash&&received<total){
+    $("#paymentStatusText").textContent=`Faltan ${money(total-received)} para completar el pago.`;
+  }else if(cash){
+    $("#paymentStatusText").textContent=`Cambio a entregar: ${money(Math.max(0,received-total))}`;
+  }else{
+    $("#paymentStatusText").textContent=`Pago mediante ${method.name}.`;
+  }
 }
 async function confirmPayment(){
   const methodInfo=selectedMethod();
   if(!methodInfo)return toast("Selecciona una forma de pago");
   const method=methodInfo.code,received=methodInfo.requires_cash?Number($("#paymentReceived").value||0):Number(paymentOrder.total);
   if(methodInfo.requires_cash&&received<Number(paymentOrder.total))return toast("El efectivo recibido es menor al total");
+
+  const button=$("#confirmPayment");
+  button.disabled=true;
+  button.textContent="Procesando cobro…";
+  $("#paymentStatusText").textContent="Registrando la venta y actualizando el sistema…";
+
   const {error}=await db.rpc("v16_pay_order",{p_order_id:paymentOrder.id,p_method:method,p_received:received,p_staff_id:sessionStaff.id,p_pin:sessionPin});
-  if(error)return toast(error.message);
+  if(error){
+    button.disabled=false;
+    button.textContent="Confirmar cobro";
+    $("#paymentStatusText").textContent=error.message;
+    return toast(error.message);
+  }
+
   $("#paymentModal").classList.add("hidden");
-  toast("Cobro registrado correctamente");
-  loadPendingPayments();
-  loadPosPaymentSummary();
-  loadDashboard();
+  toast(`Cobro registrado con ${methodInfo.name}`);
+  await Promise.all([loadPendingPayments(),loadPosPaymentSummary(),loadDashboard(),loadAccounting()]);
+  setSyncStatus("Sincronizado");
 }
 async function loadCommands(){
   await loadCatalog();renderCategoryChips("#commandCategories",renderCommandProducts);renderCommandProducts();renderCommandCart();
@@ -342,4 +410,19 @@ $("#addPaymentMethod").onclick=async()=>{
   toast("Método de pago agregado");
   await loadPaymentMethods();loadPaymentMethodsAdmin();
 };
+
+function startRealtime(){
+  if(realtimeChannel)db.removeChannel(realtimeChannel);
+  realtimeChannel=db.channel("mordisco-v16-live")
+    .on("postgres_changes",{event:"*",schema:"public",table:"v16_orders"},()=>refreshActiveView())
+    .on("postgres_changes",{event:"*",schema:"public",table:"v16_order_items"},()=>refreshActiveView())
+    .on("postgres_changes",{event:"*",schema:"public",table:"v16_expenses"},()=>refreshActiveView())
+    .subscribe(status=>{
+      if(status==="SUBSCRIBED")setSyncStatus("En tiempo real");
+    });
+}
+
 (async()=>{const saved=sessionStorage.getItem("mordisco_staff"),pin=sessionStorage.getItem("mordisco_pin");if(saved&&pin){sessionStaff=JSON.parse(saved);sessionPin=pin;await loadPaymentMethods();enterApp()}else{await loadPaymentMethods();loadLoginStaff()}})();
+setInterval(()=>{
+  if(!$("#appView").classList.contains("hidden"))refreshActiveView();
+},15000);
