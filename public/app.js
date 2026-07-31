@@ -1,3 +1,9 @@
+
+function bindEvent(selector,event,handler){
+  const element=$(selector);
+  if(element) element.addEventListener(event,handler);
+}
+
 const SUPABASE_URL="https://nmmjthqflxwucpmmmrks.supabase.co";
 const SUPABASE_KEY="sb_publishable_izCztp4wZ0MzKOHjT2KGYA_ot_3pgb0";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
@@ -486,12 +492,12 @@ $("#posSearch").oninput=()=>renderPosProducts($("#posCategories .active")?.datas
 $("#commandSearch").oninput=()=>renderCommandProducts($("#commandCategories .active")?.dataset.cat||"all");
 $("#sendPosKitchen").onclick=()=>createOrder(posCart,"pos",null,false);$("#chargePos").onclick=async()=>{const o=await createOrder(posCart,"pos",null,false);if(o)openPayment(o)};
 $("#sendCommand").onclick=()=>{if(!selectedTable)return toast("Selecciona una mesa");if(selectedTable.current_order_id)return toast("La mesa ya tiene una cuenta abierta");createOrder(commandCart,"command",selectedTable.id,false).then(()=>loadCommands())};
-$("#refreshOnlineOrders").onclick=loadOnlineOrders;
-$("#refreshTables").onclick=loadCommands;$("#refreshKitchen").onclick=loadKitchen;$("#closePayment").onclick=()=>$("#paymentModal").classList.add("hidden");$("#paymentMethod").onchange=updateChange;$("#paymentReceived").oninput=updateChange;$("#confirmPayment").onclick=confirmPayment;
-$("#productForm").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);const {error}=await db.from("v16_products").insert(Object.fromEntries(f));if(error)return toast(error.message);e.target.reset();toast("Producto guardado");loadProductsAdmin()};
-$("#inventoryForm").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));["stock","minimum_stock","cost"].forEach(k=>f[k]=Number(f[k]||0));const {error}=await db.from("v16_inventory").insert(f);if(error)return toast(error.message);e.target.reset();toast("Ingrediente guardado");loadInventory()};
-$("#customerForm").onsubmit=async e=>{e.preventDefault();const {error}=await db.from("v16_customers").insert(Object.fromEntries(new FormData(e.target)));if(error)return toast(error.message);e.target.reset();toast("Cliente guardado");loadCustomers()};
-$("#staffForm").onsubmit=async e=>{
+bindEvent("#refreshOnlineOrders","click",loadOnlineOrders);
+bindEvent("#refreshTables","click",loadCommands);bindEvent("#refreshKitchen","click",loadKitchen);bindEvent("#closePayment","click",()=>$("#paymentModal")?.classList.add("hidden"));bindEvent("#paymentMethod","change",updateChange);bindEvent("#paymentReceived","input",updateChange);bindEvent("#confirmPayment","click",confirmPayment);
+bindEvent("#productForm","submit",async e=>{e.preventDefault();const f=new FormData(e.target);const {error}=await db.from("v16_products").insert(Object.fromEntries(f));if(error)return toast(error.message);e.target.reset();toast("Producto guardado");loadProductsAdmin()});
+bindEvent("#inventoryForm","submit",async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));["stock","minimum_stock","cost"].forEach(k=>f[k]=Number(f[k]||0));const {error}=await db.from("v16_inventory").insert(f);if(error)return toast(error.message);e.target.reset();toast("Ingrediente guardado");loadInventory()});
+bindEvent("#customerForm","submit",async e=>{e.preventDefault();const {error}=await db.from("v16_customers").insert(Object.fromEntries(new FormData(e.target)));if(error)return toast(error.message);e.target.reset();toast("Cliente guardado");loadCustomers()});
+bindEvent("#staffForm","submit",async e=>{
   e.preventDefault();
   const f=Object.fromEntries(new FormData(e.target));
   const {error}=await db.rpc("v16_create_staff_v2",{
@@ -501,44 +507,19 @@ $("#staffForm").onsubmit=async e=>{
   });
   if(error)return toast(error.message);
   e.target.reset();toast("Empleado creado");loadStaffAdmin();
-};
-const staffSearchEl = $("#staffSearch");
-if (staffSearchEl) {
-  staffSearchEl.addEventListener("input", renderStaffRows);
-}
-
-const closeStaffEditEl = $("#closeStaffEdit");
-if (closeStaffEditEl) {
-  closeStaffEditEl.addEventListener("click", () => {
-    $("#staffEditModal")?.classList.add("hidden");
-  });
-}
-
-const saveStaffEditEl = $("#saveStaffEdit");
-if (saveStaffEditEl) {
-  saveStaffEditEl.addEventListener("click", saveStaffEdit);
-}
-
-const refreshShiftsEl = $("#refreshShifts");
-if (refreshShiftsEl) {
-  refreshShiftsEl.addEventListener("click", loadShiftAdmin);
-}
-
-const refreshActivityEl = $("#refreshActivity");
-if (refreshActivityEl) {
-  refreshActivityEl.addEventListener("click", loadStaffActivity);
-}
-$("#closeStaffEdit").onclick=()=>$("#staffEditModal").classList.add("hidden");
-$("#saveStaffEdit").onclick=saveStaffEdit;
-$("#refreshShifts").onclick=loadShiftAdmin;
-$("#refreshActivity").onclick=loadStaffActivity;
-$("#expenseForm").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));f.amount=Number(f.amount);f.created_by=sessionStaff.id;const {error}=await db.from("v16_expenses").insert(f);if(error)return toast(error.message);e.target.reset();toast("Egreso registrado");loadAccounting()};
-$("#openCashClose").onclick=openCashClose;
-$("#closeCashClose").onclick=()=>$("#cashCloseModal").classList.add("hidden");
-$("#cashCounted").oninput=updateCashDifference;
-$("#saveCashClose").onclick=saveCashClose;
-$("#printCashClose").onclick=printCashClose;
-$("#addPaymentMethod").onclick=async()=>{
+});
+bindEvent("#staffSearch","input",renderStaffRows);
+bindEvent("#closeStaffEdit","click",()=>$("#staffEditModal")?.classList.add("hidden"));
+bindEvent("#saveStaffEdit","click",saveStaffEdit);
+bindEvent("#refreshShifts","click",loadShiftAdmin);
+bindEvent("#refreshActivity","click",loadStaffActivity);
+bindEvent("#expenseForm","submit",async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));f.amount=Number(f.amount);f.created_by=sessionStaff.id;const {error}=await db.from("v16_expenses").insert(f);if(error)return toast(error.message);e.target.reset();toast("Egreso registrado");loadAccounting()});
+bindEvent("#openCashClose","click",openCashClose);
+bindEvent("#closeCashClose","click",()=>$("#cashCloseModal")?.classList.add("hidden"));
+bindEvent("#cashCounted","input",updateCashDifference);
+bindEvent("#saveCashClose","click",saveCashClose);
+bindEvent("#printCashClose","click",printCashClose);
+bindEvent("#addPaymentMethod","click",async()=>{
   const name=prompt("Nombre del método de pago:");
   if(!name)return;
   const code=name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
@@ -547,7 +528,7 @@ $("#addPaymentMethod").onclick=async()=>{
   if(error)return toast(error.message);
   toast("Método de pago agregado");
   await loadPaymentMethods();loadPaymentMethodsAdmin();
-};
+});
 
 function startRealtime(){
   if(realtimeChannel)db.removeChannel(realtimeChannel);
