@@ -1,0 +1,22 @@
+{
+  "outputDirectory": "public",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/caja",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/comandas",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/cocina",
+      "destination": "/index.html"
+    }
+  ]
+}

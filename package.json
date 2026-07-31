@@ -1,0 +1,8 @@
+{
+  "name": "mordisco-os-v16",
+  "version": "16.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  }
+}
