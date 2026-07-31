@@ -4,7 +4,7 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const money=n=>new Intl.NumberFormat("es-EC",{style:"currency",currency:"USD"}).format(Number(n||0));
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-let sessionStaff=null, sessionPin="", products=[],categories=[],customers=[],paymentMethods=[],posCart=[],commandCart=[],selectedTable=null,paymentOrder=null,cashCloseData=null,realtimeChannel=null,lastSyncAt=0;
+let sessionStaff=null, sessionPin="", products=[],categories=[],customers=[],paymentMethods=[],staffRows=[],posCart=[],commandCart=[],selectedTable=null,paymentOrder=null,cashCloseData=null,realtimeChannel=null,lastSyncAt=0;
 
 function toast(message){const t=$("#toast");t.textContent=message;t.style.display="block";clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display="none",2800)}
 function setSyncStatus(text="Sincronizado",busy=false){
@@ -60,6 +60,7 @@ async function login(){
   sessionStaff=data[0];sessionPin=pin;
   sessionStorage.setItem("mordisco_staff",JSON.stringify(sessionStaff));
   sessionStorage.setItem("mordisco_pin",pin);
+  await db.rpc("v16_record_login",{p_staff_id:sessionStaff.id,p_pin:pin});
   enterApp();
 }
 function enterApp(){
@@ -317,9 +318,70 @@ async function loadCustomers(){
   $("#customersList").innerHTML=(data||[]).map(c=>`<div class="list-row"><div><b>${esc(c.name)}</b><small> ${esc(c.phone||"")} ${esc(c.email||"")}</small></div></div>`).join("")||"Sin clientes";
 }
 async function loadStaffAdmin(){
-  const {data,error}=await db.from("v16_staff_public").select("*").order("name");if(error)return toast(error.message);
-  $("#staffList").innerHTML=(data||[]).map(s=>`<div class="list-row"><div><b>${esc(s.name)}</b><small> ${roleLabel(s.role)}</small></div><span class="badge ${s.active?"paid":"pending"}">${s.active?"Activo":"Inactivo"}</span>${s.role!=="admin"?`<button data-toggle="${s.id}" data-active="${s.active}">${s.active?"Desactivar":"Activar"}</button>`:""}</div>`).join("");
-  $("#staffList").querySelectorAll("[data-toggle]").forEach(b=>b.onclick=async()=>{const {error}=await db.rpc("v16_toggle_staff",{p_target_id:b.dataset.toggle,p_active:b.dataset.active!=="true",p_admin_id:sessionStaff.id,p_pin:sessionPin});if(error)return toast(error.message);loadStaffAdmin()});
+  const {data,error}=await db.from("v16_staff_public").select("*").order("name");
+  if(error)return toast(error.message);
+  staffRows=data||[];
+  renderStaffRows();
+  $("#staffActiveCount").textContent=staffRows.filter(s=>s.active).length;
+  $("#staffCashierCount").textContent=staffRows.filter(s=>s.active&&s.role==="cashier").length;
+  $("#staffWaiterCount").textContent=staffRows.filter(s=>s.active&&s.role==="waiter").length;
+  await Promise.all([loadShiftAdmin(),loadStaffActivity()]);
+}
+function renderStaffRows(){
+  const q=($("#staffSearch")?.value||"").toLowerCase();
+  const rows=staffRows.filter(s=>(`${s.name} ${roleLabel(s.role)} ${s.phone||""}`).toLowerCase().includes(q));
+  $("#staffList").innerHTML=rows.map(s=>`<article class="staff-card">
+    <div class="staff-avatar">${esc(s.name).charAt(0).toUpperCase()}</div>
+    <div class="staff-info"><b>${esc(s.name)}</b><span>${roleLabel(s.role)} · ${esc(s.phone||"Sin teléfono")}</span><small>Ingreso: ${s.hire_date||"No definida"}</small></div>
+    <span class="badge ${s.active?"paid":"pending"}">${s.active?"Activo":"Inactivo"}</span>
+    <div class="staff-actions">
+      <button data-edit-staff="${s.id}">Editar</button>
+      ${s.role!=="admin"?`<button data-toggle="${s.id}" data-active="${s.active}">${s.active?"Desactivar":"Activar"}</button><button class="danger-button" data-delete-staff="${s.id}">Eliminar</button>`:""}
+    </div>
+  </article>`).join("")||"No hay empleados.";
+  $("#staffList").querySelectorAll("[data-edit-staff]").forEach(b=>b.onclick=()=>openStaffEdit(b.dataset.editStaff));
+  $("#staffList").querySelectorAll("[data-toggle]").forEach(b=>b.onclick=async()=>{
+    const {error}=await db.rpc("v16_toggle_staff",{p_target_id:b.dataset.toggle,p_active:b.dataset.active!=="true",p_admin_id:sessionStaff.id,p_pin:sessionPin});
+    if(error)return toast(error.message);toast("Estado actualizado");loadStaffAdmin();
+  });
+  $("#staffList").querySelectorAll("[data-delete-staff]").forEach(b=>b.onclick=async()=>{
+    const employee=staffRows.find(s=>s.id===b.dataset.deleteStaff);
+    if(!confirm(`¿Eliminar a ${employee?.name}? Su historial se conservará.`))return;
+    const {error}=await db.rpc("v16_delete_staff",{p_target_id:b.dataset.deleteStaff,p_admin_id:sessionStaff.id,p_pin:sessionPin});
+    if(error)return toast(error.message);toast("Empleado eliminado");loadStaffAdmin();
+  });
+}
+function openStaffEdit(id){
+  const s=staffRows.find(x=>x.id===id);if(!s)return;
+  $("#editStaffId").value=s.id;$("#editStaffName").value=s.name;$("#editStaffRole").value=s.role;
+  $("#editStaffPhone").value=s.phone||"";$("#editStaffHireDate").value=s.hire_date||"";
+  $("#editStaffNotes").value=s.notes||"";$("#editStaffPin").value="";
+  $("#staffEditModal").classList.remove("hidden");
+}
+async function saveStaffEdit(){
+  const pin=$("#editStaffPin").value.trim();
+  if(pin&&!/^\d{4,6}$/.test(pin))return toast("El PIN debe tener de 4 a 6 números");
+  const {error}=await db.rpc("v16_update_staff",{
+    p_target_id:$("#editStaffId").value,p_name:$("#editStaffName").value.trim(),
+    p_role:$("#editStaffRole").value,p_phone:$("#editStaffPhone").value.trim(),
+    p_hire_date:$("#editStaffHireDate").value||null,p_notes:$("#editStaffNotes").value.trim(),
+    p_new_pin:pin||null,p_admin_id:sessionStaff.id,p_admin_pin:sessionPin
+  });
+  if(error)return toast(error.message);
+  $("#staffEditModal").classList.add("hidden");toast("Empleado actualizado");loadStaffAdmin();
+}
+async function loadShiftAdmin(){
+  const start=todayISO()+"T00:00:00";
+  const {data,error}=await db.from("v16_staff_shifts").select("*,v16_staff_public(name,role)").gte("started_at",start).order("started_at",{ascending:false});
+  if(error)return toast(error.message);
+  const shifts=data||[];
+  $("#staffOnShiftCount").textContent=shifts.filter(s=>!s.ended_at).length;
+  $("#shiftAdminList").innerHTML=shifts.map(s=>`<div class="list-row"><div><b>${esc(s.v16_staff_public?.name||"Empleado")}</b><small> ${new Date(s.started_at).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})}${s.ended_at?" → "+new Date(s.ended_at).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"}):" · En turno"}</small></div><span class="badge ${s.ended_at?"paid":"preparing"}">${s.ended_at?"Cerrado":"Abierto"}</span></div>`).join("")||"No hay turnos registrados hoy.";
+}
+async function loadStaffActivity(){
+  const {data,error}=await db.from("v16_staff_activity").select("*,v16_staff_public(name)").order("created_at",{ascending:false}).limit(30);
+  if(error)return toast(error.message);
+  $("#staffActivityList").innerHTML=(data||[]).map(a=>`<div class="list-row"><div><b>${esc(a.v16_staff_public?.name||"Sistema")}</b><small> ${esc(a.description)} · ${new Date(a.created_at).toLocaleString("es-EC")}</small></div><span class="badge">${esc(a.action)}</span></div>`).join("")||"Sin actividad registrada.";
 }
 
 async function openCashClose(){
@@ -429,7 +491,22 @@ $("#refreshTables").onclick=loadCommands;$("#refreshKitchen").onclick=loadKitche
 $("#productForm").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);const {error}=await db.from("v16_products").insert(Object.fromEntries(f));if(error)return toast(error.message);e.target.reset();toast("Producto guardado");loadProductsAdmin()};
 $("#inventoryForm").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));["stock","minimum_stock","cost"].forEach(k=>f[k]=Number(f[k]||0));const {error}=await db.from("v16_inventory").insert(f);if(error)return toast(error.message);e.target.reset();toast("Ingrediente guardado");loadInventory()};
 $("#customerForm").onsubmit=async e=>{e.preventDefault();const {error}=await db.from("v16_customers").insert(Object.fromEntries(new FormData(e.target)));if(error)return toast(error.message);e.target.reset();toast("Cliente guardado");loadCustomers()};
-$("#staffForm").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));const {error}=await db.rpc("v16_create_staff",{p_name:f.name,p_role:f.role,p_pin:f.pin,p_admin_id:sessionStaff.id,p_admin_pin:sessionPin});if(error)return toast(error.message);e.target.reset();toast("Empleado creado");loadStaffAdmin()};
+$("#staffForm").onsubmit=async e=>{
+  e.preventDefault();
+  const f=Object.fromEntries(new FormData(e.target));
+  const {error}=await db.rpc("v16_create_staff_v2",{
+    p_name:f.name,p_role:f.role,p_pin:f.pin,p_phone:f.phone||null,
+    p_hire_date:f.hire_date||null,p_notes:f.notes||null,
+    p_admin_id:sessionStaff.id,p_admin_pin:sessionPin
+  });
+  if(error)return toast(error.message);
+  e.target.reset();toast("Empleado creado");loadStaffAdmin();
+};
+$("#staffSearch").oninput=renderStaffRows;
+$("#closeStaffEdit").onclick=()=>$("#staffEditModal").classList.add("hidden");
+$("#saveStaffEdit").onclick=saveStaffEdit;
+$("#refreshShifts").onclick=loadShiftAdmin;
+$("#refreshActivity").onclick=loadStaffActivity;
 $("#expenseForm").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));f.amount=Number(f.amount);f.created_by=sessionStaff.id;const {error}=await db.from("v16_expenses").insert(f);if(error)return toast(error.message);e.target.reset();toast("Egreso registrado");loadAccounting()};
 $("#openCashClose").onclick=openCashClose;
 $("#closeCashClose").onclick=()=>$("#cashCloseModal").classList.add("hidden");

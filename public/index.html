@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#15120e">
   <title>Mordisco OS V16</title>
   <link rel="icon" href="/icon-192.png">
-  <link rel="stylesheet" href="/styles.css?v=16.5.0">
+  <link rel="stylesheet" href="/styles.css?v=16.6.0">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -195,48 +195,70 @@
       </section>
 
       <section id="view-staff" class="view hidden">
+        <div class="cards staff-metrics">
+          <article><span>Empleados activos</span><strong id="staffActiveCount">0</strong></article>
+          <article><span>En turno</span><strong id="staffOnShiftCount">0</strong></article>
+          <article><span>Cajeros</span><strong id="staffCashierCount">0</strong></article>
+          <article><span>Meseros</span><strong id="staffWaiterCount">0</strong></article>
+        </div>
         <div class="grid-two">
           <section class="panel">
             <h3>Nuevo empleado</h3>
             <form id="staffForm" class="form-grid">
-              <input name="name" placeholder="Nombre" required>
-              <select name="role"><option value="cashier">Cajero</option><option value="waiter">Mesero</option><option value="kitchen">Cocina</option><option value="admin">Administrador</option></select>
+              <input name="name" placeholder="Nombre completo" required>
+              <select name="role">
+                <option value="cashier">Cajero</option>
+                <option value="waiter">Mesero</option>
+                <option value="kitchen">Cocina</option>
+                <option value="admin">Administrador</option>
+              </select>
+              <input name="phone" placeholder="Teléfono">
+              <input name="hire_date" type="date">
               <input name="pin" type="password" inputmode="numeric" maxlength="6" placeholder="PIN de 4 a 6 dígitos" required>
+              <textarea name="notes" placeholder="Observaciones"></textarea>
               <button class="primary">Crear empleado</button>
             </form>
           </section>
-          <section class="panel"><div class="panel-head"><h3>Personal</h3><button onclick="loadStaffAdmin()">Actualizar</button></div><div id="staffList"></div></section>
-        </div>
-      </section>
-
-      <section id="view-accounting" class="view hidden">
-        <div class="cards">
-          <article><span>Ingresos del día</span><strong id="accountIncome">$0.00</strong></article>
-          <article><span>Egresos del día</span><strong id="accountExpense">$0.00</strong></article>
-          <article><span>Resultado</span><strong id="accountResult">$0.00</strong></article>
-        </div>
-        <div class="grid-two">
           <section class="panel">
-            <h3>Registrar egreso</h3>
-            <form id="expenseForm" class="form-grid">
-              <input name="description" placeholder="Descripción" required>
-              <input name="amount" type="number" step=".01" min="0" placeholder="Monto" required>
-              <select name="category"><option>Compras</option><option>Servicios</option><option>Transporte</option><option>Nómina</option><option>Otros</option></select>
-              <button class="primary">Registrar</button>
-            </form>
+            <div class="panel-head">
+              <div><h3>Personal</h3><small>Edita cargos, PIN y disponibilidad.</small></div>
+              <button onclick="loadStaffAdmin()">Actualizar</button>
+            </div>
+            <input id="staffSearch" placeholder="Buscar empleado">
+            <div id="staffList" class="staff-list"></div>
+          </section>
+        </div>
+        <div class="grid-two staff-bottom-grid">
+          <section class="panel">
+            <div class="panel-head"><h3>Turnos de trabajo</h3><button id="refreshShifts">Actualizar</button></div>
+            <div id="shiftAdminList"></div>
           </section>
           <section class="panel">
-            <div class="panel-head"><h3>Movimientos recientes</h3><button onclick="loadAccounting()">Actualizar</button></div>
-            <div id="accountingList"></div>
-            <hr>
-            <div class="panel-head"><h3>Métodos de pago</h3><button id="addPaymentMethod">Agregar</button></div>
-            <div id="paymentMethodsList"></div>
+            <div class="panel-head"><h3>Actividad reciente</h3><button id="refreshActivity">Actualizar</button></div>
+            <div id="staffActivityList"></div>
           </section>
         </div>
       </section>
     </section>
   </div>
 
+
+  
+  <div id="staffEditModal" class="modal hidden">
+    <div class="modal-card">
+      <button id="closeStaffEdit" class="modal-close">×</button>
+      <span class="eyebrow">GESTIÓN DE PERSONAL</span>
+      <h2>Editar empleado</h2>
+      <input id="editStaffId" type="hidden">
+      <label>Nombre<input id="editStaffName"></label>
+      <label>Cargo<select id="editStaffRole"><option value="cashier">Cajero</option><option value="waiter">Mesero</option><option value="kitchen">Cocina</option><option value="admin">Administrador</option></select></label>
+      <label>Teléfono<input id="editStaffPhone"></label>
+      <label>Fecha de ingreso<input id="editStaffHireDate" type="date"></label>
+      <label>Nuevo PIN <small>(déjalo vacío para conservarlo)</small><input id="editStaffPin" type="password" inputmode="numeric" maxlength="6"></label>
+      <label>Observaciones<textarea id="editStaffNotes"></textarea></label>
+      <button id="saveStaffEdit" class="primary payment-confirm">Guardar cambios</button>
+    </div>
+  </div>
 
   <div id="cashCloseModal" class="modal hidden">
     <div class="modal-card cash-close-card">
@@ -277,6 +299,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=16.5.0"></script>
+  <script src="/app.js?v=16.6.0"></script>
 </body>
 </html>

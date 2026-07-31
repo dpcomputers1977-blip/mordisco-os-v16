@@ -32,3 +32,12 @@
 .online-orders-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}.online-order-card{border:1px solid #e1d5c7;border-radius:15px;padding:15px;background:#fff}.online-order-head{display:flex;justify-content:space-between;gap:12px}.online-order-head h3{margin:7px 0}.online-customer{display:grid;gap:4px;padding:11px;margin:12px 0;background:#f7f1e9;border-radius:10px}.online-actions{display:flex;gap:8px;margin-top:12px}.online-actions button{padding:10px;border-radius:9px;border:1px solid #d9cdbd}
 
 .role-access-info{display:block;color:#ffc400;font-size:.72rem;margin-top:2px}
+
+.staff-list{display:grid;gap:10px;margin-top:12px;max-height:520px;overflow:auto}
+.staff-card{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;border:1px solid #e4d9ca;border-radius:13px;padding:12px}
+.staff-avatar{width:43px;height:43px;border-radius:50%;display:grid;place-items:center;background:#171512;color:#ffc400;font-weight:900;font-size:1.1rem}
+.staff-info{display:grid;gap:3px}.staff-info span,.staff-info small{color:#746a5e}
+.staff-actions{grid-column:2/-1;display:flex;gap:7px;flex-wrap:wrap}.staff-actions button{padding:7px 10px;border:1px solid #d8cbbb;border-radius:8px;background:#faf5ed}
+.danger-button{background:#fff0ed!important;color:#a52a1d!important;border-color:#efc1ba!important}
+.staff-bottom-grid{margin-top:18px}.modal-card textarea{width:100%;min-height:85px;padding:12px;border:1px solid #ddd1c1;border-radius:11px;margin-top:6px}
+@media(max-width:650px){.staff-card{grid-template-columns:auto 1fr}.staff-card>.badge{grid-column:2}.staff-actions{grid-column:1/-1}}
