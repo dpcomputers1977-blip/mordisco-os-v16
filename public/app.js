@@ -31,6 +31,17 @@ if(active==="online")await loadOnlineOrders()
   }
 }
 function roleLabel(r){return({admin:"Administrador",cashier:"Cajero",waiter:"Mesero",kitchen:"Cocina"})[r]||r}
+
+const ROLE_VIEWS={
+  admin:["dashboard","pos","online","commands","kitchen","products","inventory","customers","staff","accounting"],
+  cashier:["pos"],
+  waiter:["commands"],
+  kitchen:["kitchen"]
+};
+function canAccessView(view){
+  return Boolean(sessionStaff && (ROLE_VIEWS[sessionStaff.role]||[]).includes(view));
+}
+
 function statusLabel(s){return({awaiting_confirmation:"Por confirmar",pending:"Pendiente",preparing:"Preparando",ready:"Lista",delivered:"Entregada",paid:"Pagada",unpaid:"Por cobrar"})[s]||s}
 function todayISO(){return new Date().toISOString().slice(0,10)}
 function updateClock(){ $("#clock").textContent=new Date().toLocaleString("es-EC",{dateStyle:"medium",timeStyle:"short"}); }
@@ -53,14 +64,28 @@ async function login(){
 }
 function enterApp(){
   $("#loginView").classList.add("hidden");$("#appView").classList.remove("hidden");
-  $("#currentUserName").textContent=sessionStaff.name;$("#currentUserRole").textContent=roleLabel(sessionStaff.role);
-  $$("[data-roles]").forEach(b=>b.classList.toggle("hidden",!b.dataset.roles.split(",").includes(sessionStaff.role)));
+  $("#currentUserName").textContent=sessionStaff.name;
+  $("#currentUserRole").textContent=roleLabel(sessionStaff.role);
+  $("#roleAccessInfo").textContent=({
+    admin:"Acceso completo",
+    cashier:"Solo Caja / POS",
+    waiter:"Solo Comandas",
+    kitchen:"Solo Cocina"
+  })[sessionStaff.role]||"";
+  $$("#mainNav button").forEach(button=>{
+    button.classList.toggle("hidden",!canAccessView(button.dataset.view));
+  });
   const defaultView=({cashier:"pos",waiter:"commands",kitchen:"kitchen",admin:"dashboard"})[sessionStaff.role];
   showView(defaultView);
   startRealtime();
 }
 function logout(){sessionStorage.clear();location.reload()}
 function showView(name){
+  if(!canAccessView(name)){
+    const defaultView=({cashier:"pos",waiter:"commands",kitchen:"kitchen",admin:"dashboard"})[sessionStaff?.role]||"dashboard";
+    toast("Tu cargo no tiene permiso para abrir esa sección");
+    if(name!==defaultView)return showView(defaultView);
+  }
   $$(".view").forEach(v=>v.classList.add("hidden"));$(`#view-${name}`)?.classList.remove("hidden");
   $$("#mainNav button").forEach(b=>b.classList.toggle("active",b.dataset.view===name));
   $("#pageTitle").textContent=({dashboard:"Dashboard",pos:"Caja / POS",online:"Pedidos web",commands:"Comandas",kitchen:"Cocina",products:"Productos",inventory:"Inventario",customers:"Clientes",staff:"Empleados",accounting:"Contabilidad"})[name];
@@ -394,7 +419,7 @@ async function loadPaymentMethodsAdmin(){
   });
 }
 $("#loginButton").onclick=login;$("#loginPin").onkeydown=e=>{if(e.key==="Enter")login()};$("#logoutButton").onclick=logout;$("#menuButton").onclick=()=>$(".sidebar").classList.toggle("open");
-$$("#mainNav button").forEach(b=>b.onclick=()=>showView(b.dataset.view));
+$$("#mainNav button").forEach(b=>b.onclick=()=>{if(canAccessView(b.dataset.view))showView(b.dataset.view);else toast("Acceso no permitido")});
 $("#posSearch").oninput=()=>renderPosProducts($("#posCategories .active")?.dataset.cat||"all");
 $("#commandSearch").oninput=()=>renderCommandProducts($("#commandCategories .active")?.dataset.cat||"all");
 $("#sendPosKitchen").onclick=()=>createOrder(posCart,"pos",null,false);$("#chargePos").onclick=async()=>{const o=await createOrder(posCart,"pos",null,false);if(o)openPayment(o)};

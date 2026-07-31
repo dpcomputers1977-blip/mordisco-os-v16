@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#15120e">
   <title>Mordisco OS V16</title>
   <link rel="icon" href="/icon-192.png">
-  <link rel="stylesheet" href="/styles.css?v=16.4.0">
+  <link rel="stylesheet" href="/styles.css?v=16.5.0">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -36,20 +36,20 @@
         <div><b>Mordisco OS</b><small>Versión 16</small></div>
       </div>
       <nav id="mainNav">
-        <button data-view="dashboard">📊 Dashboard</button>
+        <button data-view="dashboard" data-roles="admin">📊 Dashboard</button>
         <button data-view="pos" data-roles="admin,cashier">💵 Caja / POS</button>
-<button data-view="online" data-roles="admin,cashier">🌐 Pedidos web</button>
+<button data-view="online" data-roles="admin">🌐 Pedidos web</button>
         <button data-view="commands" data-roles="admin,waiter">🍽️ Comandas</button>
         <button data-view="kitchen" data-roles="admin,kitchen">👨‍🍳 Cocina</button>
         <button data-view="products" data-roles="admin">🍔 Productos</button>
         <button data-view="inventory" data-roles="admin">📦 Inventario</button>
-        <button data-view="customers" data-roles="admin,cashier">👥 Clientes</button>
+        <button data-view="customers" data-roles="admin">👥 Clientes</button>
         <button data-view="staff" data-roles="admin">👨‍💼 Empleados</button>
         <button data-view="accounting" data-roles="admin">💰 Contabilidad</button>
       </nav>
       <div class="sidebar-user">
         <b id="currentUserName"></b>
-        <span id="currentUserRole"></span>
+        <span id="currentUserRole"></span><small id="roleAccessInfo" class="role-access-info"></small>
         <button id="logoutButton">Cerrar sesión</button>
       </div>
     </aside>
@@ -277,6 +277,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=16.4.0"></script>
+  <script src="/app.js?v=16.5.0"></script>
 </body>
 </html>

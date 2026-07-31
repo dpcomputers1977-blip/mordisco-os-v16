@@ -30,3 +30,5 @@
 @media(max-width:600px){.payment-method-grid{grid-template-columns:1fr}.live-status{display:none}}
 
 .online-orders-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}.online-order-card{border:1px solid #e1d5c7;border-radius:15px;padding:15px;background:#fff}.online-order-head{display:flex;justify-content:space-between;gap:12px}.online-order-head h3{margin:7px 0}.online-customer{display:grid;gap:4px;padding:11px;margin:12px 0;background:#f7f1e9;border-radius:10px}.online-actions{display:flex;gap:8px;margin-top:12px}.online-actions button{padding:10px;border-radius:9px;border:1px solid #d9cdbd}
+
+.role-access-info{display:block;color:#ffc400;font-size:.72rem;margin-top:2px}
