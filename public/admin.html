@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#15120e">
   <title>Mordisco OS Admin V16</title>
   <link rel="icon" href="/icon-192.png">
-  <link rel="stylesheet" href="/styles.css?v=16.6.0">
+  <link rel="stylesheet" href="/styles.css?v=16.9.0">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -50,6 +50,7 @@
       <div class="sidebar-user">
         <b id="currentUserName"></b>
         <span id="currentUserRole"></span><small id="roleAccessInfo" class="role-access-info"></small>
+        <a class="public-site-link" href="/" target="_blank" rel="noopener">🌐 Abrir página pública</a>
         <button id="logoutButton">Cerrar sesión</button>
       </div>
     </aside>
@@ -239,6 +240,49 @@
           </section>
         </div>
       </section>
+
+      <section id="view-accounting" class="view hidden">
+        <div class="cards">
+          <article><span>Ingresos del día</span><strong id="accountIncome">$0.00</strong></article>
+          <article><span>Egresos del día</span><strong id="accountExpense">$0.00</strong></article>
+          <article><span>Resultado</span><strong id="accountResult">$0.00</strong></article>
+        </div>
+
+        <div class="grid-two">
+          <section class="panel">
+            <div class="panel-head">
+              <div><h3>Registrar egreso</h3><small>Compras, servicios, transporte y otros gastos.</small></div>
+            </div>
+            <form id="expenseForm" class="form-grid">
+              <input name="description" placeholder="Descripción del egreso" required>
+              <input name="amount" type="number" step=".01" min=".01" placeholder="Monto" required>
+              <select name="category">
+                <option value="Compras">Compras</option>
+                <option value="Servicios">Servicios</option>
+                <option value="Transporte">Transporte</option>
+                <option value="Nómina">Nómina</option>
+                <option value="Otros">Otros</option>
+              </select>
+              <button class="primary">Registrar egreso</button>
+            </form>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div><h3>Movimientos recientes</h3><small>Ventas cobradas y egresos registrados hoy.</small></div>
+              <button id="refreshAccounting">Actualizar</button>
+            </div>
+            <div id="accountingList"></div>
+            <hr>
+            <div class="panel-head">
+              <div><h3>Métodos de pago</h3><small>Activa o desactiva las opciones disponibles.</small></div>
+              <button id="addPaymentMethod">Agregar</button>
+            </div>
+            <div id="paymentMethodsList"></div>
+          </section>
+        </div>
+      </section>
+
     </section>
   </div>
 
@@ -299,6 +343,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=16.6.1"></script>
+  <script src="/app.js?v=16.9.0"></script>
 </body>
 </html>

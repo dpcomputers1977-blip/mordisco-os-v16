@@ -463,17 +463,46 @@ function printCashClose(){
 }
 
 async function loadAccounting(){
-  if(!paymentMethods.length) await loadPaymentMethods();
-  const start=todayISO()+"T00:00:00";
-  const [sales,expenses]=await Promise.all([db.from("v16_orders").select("total,paid_at,order_number,payment_method").eq("payment_status","paid").gte("paid_at",start),db.from("v16_expenses").select("*").gte("created_at",start).order("created_at",{ascending:false})]);
-  const income=(sales.data||[]).reduce((s,x)=>s+Number(x.total),0),expense=(expenses.data||[]).reduce((s,x)=>s+Number(x.amount),0);
-  $("#accountIncome").textContent=money(income);$("#accountExpense").textContent=money(expense);$("#accountResult").textContent=money(income-expense);
-  const movements=[...(sales.data||[]).map(x=>({date:x.paid_at,label:`Venta #${x.order_number} · ${esc(paymentMethods.find(m=>m.code===x.payment_method)?.name||x.payment_method||"Sin método")}`,amount:x.total,type:"income"})),...(expenses.data||[]).map(x=>({date:x.created_at,label:x.description,amount:x.amount,type:"expense"}))].sort((a,b)=>new Date(b.date)-new Date(a.date));
-  $("#accountingList").innerHTML=movements.map(m=>`<div class="list-row"><div><b>${m.label}</b><small> ${new Date(m.date).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})}</small></div><strong>${m.type==="expense"?"−":"+"}${money(m.amount)}</strong></div>`).join("")||"Sin movimientos hoy";
-  await loadPaymentMethodsAdmin();
-  const {data:closes}=await db.from("v16_cash_closes").select("*").order("created_at",{ascending:false}).limit(10);
-  if(closes?.length){
-    $("#accountingList").innerHTML += `<hr><h4>Cierres recientes</h4>`+closes.map(c=>`<div class="list-row"><div><b>Cierre ${new Date(c.created_at).toLocaleDateString("es-EC")}</b><small> ${new Date(c.created_at).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})}</small></div><strong>${money(c.sales_total-c.expenses_total)}</strong><span class="badge ${Number(c.difference)===0?"paid":"pending"}">Dif. ${money(c.difference)}</span></div>`).join("");
+  setSyncStatus("Cargando contabilidad…",true);
+  try{
+    if(!paymentMethods.length) await loadPaymentMethods();
+    const start=todayISO()+"T00:00:00";
+    const [salesResult,expensesResult,closesResult]=await Promise.all([
+      db.from("v16_orders").select("total,paid_at,order_number,payment_method").eq("payment_status","paid").gte("paid_at",start).order("paid_at",{ascending:false}),
+      db.from("v16_expenses").select("*").gte("created_at",start).order("created_at",{ascending:false}),
+      db.from("v16_cash_closes").select("*").order("created_at",{ascending:false}).limit(10)
+    ]);
+    if(salesResult.error) throw salesResult.error;
+    if(expensesResult.error) throw expensesResult.error;
+
+    const sales=salesResult.data||[],expenses=expensesResult.data||[];
+    const income=sales.reduce((sum,row)=>sum+Number(row.total||0),0);
+    const expense=expenses.reduce((sum,row)=>sum+Number(row.amount||0),0);
+
+    $("#accountIncome").textContent=money(income);
+    $("#accountExpense").textContent=money(expense);
+    $("#accountResult").textContent=money(income-expense);
+
+    const movements=[
+      ...sales.map(row=>({date:row.paid_at,label:`Venta #${row.order_number} · ${paymentMethods.find(m=>m.code===row.payment_method)?.name||row.payment_method||"Sin método"}`,amount:Number(row.total||0),type:"income"})),
+      ...expenses.map(row=>({date:row.created_at,label:`${row.description} · ${row.category||"Egreso"}`,amount:Number(row.amount||0),type:"expense"}))
+    ].sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+    let output=movements.map(m=>`<div class="list-row accounting-row"><div><b>${esc(m.label)}</b><small>${new Date(m.date).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})}</small></div><strong class="${m.type}">${m.type==="expense"?"−":"+"}${money(m.amount)}</strong></div>`).join("")||'<div class="empty-state">Sin movimientos registrados hoy.</div>';
+
+    const closes=closesResult.data||[];
+    if(closes.length){
+      output+=`<hr><h4>Cierres recientes</h4>`+closes.map(c=>`<div class="list-row"><div><b>Cierre ${new Date(c.created_at).toLocaleDateString("es-EC")}</b><small>${new Date(c.created_at).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})}</small></div><strong>${money(Number(c.sales_total||0)-Number(c.expenses_total||0))}</strong><span class="badge ${Number(c.difference||0)===0?"paid":"pending"}">Dif. ${money(c.difference||0)}</span></div>`).join("");
+    }
+
+    $("#accountingList").innerHTML=output;
+    await loadPaymentMethodsAdmin();
+    setSyncStatus("Sincronizado",false);
+  }catch(error){
+    console.error("Error de contabilidad:",error);
+    if($("#accountingList"))$("#accountingList").innerHTML=`<div class="error-state">No se pudo cargar Contabilidad: ${esc(error.message||"Error desconocido")}</div>`;
+    toast(error.message||"No se pudo cargar Contabilidad");
+    setSyncStatus("Error de sincronización",false);
   }
 }
 async function loadPaymentMethodsAdmin(){
@@ -513,7 +542,23 @@ bindEvent("#closeStaffEdit","click",()=>$("#staffEditModal")?.classList.add("hid
 bindEvent("#saveStaffEdit","click",saveStaffEdit);
 bindEvent("#refreshShifts","click",loadShiftAdmin);
 bindEvent("#refreshActivity","click",loadStaffActivity);
-bindEvent("#expenseForm","submit",async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));f.amount=Number(f.amount);f.created_by=sessionStaff.id;const {error}=await db.from("v16_expenses").insert(f);if(error)return toast(error.message);e.target.reset();toast("Egreso registrado");loadAccounting()});
+bindEvent("#refreshAccounting","click",loadAccounting);
+bindEvent("#expenseForm","submit",async e=>{
+  e.preventDefault();
+  const f=Object.fromEntries(new FormData(e.target));
+  f.amount=Number(f.amount);
+  f.created_by=sessionStaff.id;
+  if(!f.description?.trim())return toast("Escribe una descripción");
+  if(!Number.isFinite(f.amount)||f.amount<=0)return toast("Ingresa un monto válido");
+  const button=e.target.querySelector("button");
+  if(button){button.disabled=true;button.textContent="Registrando…"}
+  const {error}=await db.from("v16_expenses").insert(f);
+  if(button){button.disabled=false;button.textContent="Registrar egreso"}
+  if(error)return toast(error.message);
+  e.target.reset();
+  toast("Egreso registrado");
+  await loadAccounting();
+});
 bindEvent("#openCashClose","click",openCashClose);
 bindEvent("#closeCashClose","click",()=>$("#cashCloseModal")?.classList.add("hidden"));
 bindEvent("#cashCounted","input",updateCashDifference);

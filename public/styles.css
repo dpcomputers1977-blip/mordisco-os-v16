@@ -41,3 +41,11 @@
 .danger-button{background:#fff0ed!important;color:#a52a1d!important;border-color:#efc1ba!important}
 .staff-bottom-grid{margin-top:18px}.modal-card textarea{width:100%;min-height:85px;padding:12px;border:1px solid #ddd1c1;border-radius:11px;margin-top:6px}
 @media(max-width:650px){.staff-card{grid-template-columns:auto 1fr}.staff-card>.badge{grid-column:2}.staff-actions{grid-column:1/-1}}
+
+.public-site-link{display:block;text-align:center;padding:10px 12px;margin:10px 0;border:1px solid #48443e;border-radius:10px;color:#ffc400;text-decoration:none;font-size:.82rem;font-weight:800;background:#211f1b}
+.public-site-link:hover{background:#2b2823}
+.accounting-row small{display:block;color:#857a6d;margin-top:3px}
+.accounting-row strong.income{color:#198c49}
+.accounting-row strong.expense{color:#c33a2c}
+.empty-state,.error-state{padding:18px;border-radius:12px;background:#f8f3eb;color:#746a5e;text-align:center}
+.error-state{background:#fff0ed;color:#9d2f23}
