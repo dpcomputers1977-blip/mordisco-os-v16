@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#15120e">
   <title>Mordisco OS V16</title>
   <link rel="icon" href="/icon-192.png">
-  <link rel="stylesheet" href="/styles.css?v=16.3.0">
+  <link rel="stylesheet" href="/styles.css?v=16.4.0">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -38,6 +38,7 @@
       <nav id="mainNav">
         <button data-view="dashboard">📊 Dashboard</button>
         <button data-view="pos" data-roles="admin,cashier">💵 Caja / POS</button>
+<button data-view="online" data-roles="admin,cashier">🌐 Pedidos web</button>
         <button data-view="commands" data-roles="admin,waiter">🍽️ Comandas</button>
         <button data-view="kitchen" data-roles="admin,kitchen">👨‍🍳 Cocina</button>
         <button data-view="products" data-roles="admin">🍔 Productos</button>
@@ -111,7 +112,10 @@
         </div>
       </section>
 
-      <section id="view-commands" class="view hidden">
+      <section id="view-online" class="view hidden">
+<div class="panel"><div class="panel-head"><div><h3>Pedidos recibidos desde la web</h3><small>Confirma antes de enviar a Cocina.</small></div><button id="refreshOnlineOrders">Actualizar</button></div><div id="onlineOrdersList" class="online-orders-list"></div></div>
+</section>
+<section id="view-commands" class="view hidden">
         <div class="grid-two commands-grid">
           <section class="panel">
             <div class="panel-head"><h3>Mesas</h3><button id="refreshTables">Actualizar</button></div>
@@ -273,6 +277,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=16.3.0"></script>
+  <script src="/app.js?v=16.4.0"></script>
 </body>
 </html>

@@ -19,6 +19,7 @@ async function refreshActiveView(){
   try{
     if(active==="dashboard") await loadDashboard();
     if(active==="pos"){await loadPendingPayments();await loadPosPaymentSummary()}
+if(active==="online")await loadOnlineOrders()
     if(active==="commands") await loadCommands();
     if(active==="kitchen") await loadKitchen();
     if(active==="accounting") await loadAccounting();
@@ -30,7 +31,7 @@ async function refreshActiveView(){
   }
 }
 function roleLabel(r){return({admin:"Administrador",cashier:"Cajero",waiter:"Mesero",kitchen:"Cocina"})[r]||r}
-function statusLabel(s){return({pending:"Pendiente",preparing:"Preparando",ready:"Lista",delivered:"Entregada",paid:"Pagada",unpaid:"Por cobrar"})[s]||s}
+function statusLabel(s){return({awaiting_confirmation:"Por confirmar",pending:"Pendiente",preparing:"Preparando",ready:"Lista",delivered:"Entregada",paid:"Pagada",unpaid:"Por cobrar"})[s]||s}
 function todayISO(){return new Date().toISOString().slice(0,10)}
 function updateClock(){ $("#clock").textContent=new Date().toLocaleString("es-EC",{dateStyle:"medium",timeStyle:"short"}); }
 setInterval(updateClock,1000);updateClock();
@@ -62,9 +63,9 @@ function logout(){sessionStorage.clear();location.reload()}
 function showView(name){
   $$(".view").forEach(v=>v.classList.add("hidden"));$(`#view-${name}`)?.classList.remove("hidden");
   $$("#mainNav button").forEach(b=>b.classList.toggle("active",b.dataset.view===name));
-  $("#pageTitle").textContent=({dashboard:"Dashboard",pos:"Caja / POS",commands:"Comandas",kitchen:"Cocina",products:"Productos",inventory:"Inventario",customers:"Clientes",staff:"Empleados",accounting:"Contabilidad"})[name];
+  $("#pageTitle").textContent=({dashboard:"Dashboard",pos:"Caja / POS",online:"Pedidos web",commands:"Comandas",kitchen:"Cocina",products:"Productos",inventory:"Inventario",customers:"Clientes",staff:"Empleados",accounting:"Contabilidad"})[name];
   $(".sidebar").classList.remove("open");
-  ({dashboard:loadDashboard,pos:loadPos,commands:loadCommands,kitchen:loadKitchen,products:loadProductsAdmin,inventory:loadInventory,customers:loadCustomers,staff:loadStaffAdmin,accounting:loadAccounting})[name]?.();
+  ({dashboard:loadDashboard,pos:loadPos,online:loadOnlineOrders,commands:loadCommands,kitchen:loadKitchen,products:loadProductsAdmin,inventory:loadInventory,customers:loadCustomers,staff:loadStaffAdmin,accounting:loadAccounting})[name]?.();
 }
 
 async function loadPaymentMethods(){
@@ -254,6 +255,15 @@ async function confirmPayment(){
   await Promise.all([loadPendingPayments(),loadPosPaymentSummary(),loadDashboard(),loadAccounting()]);
   setSyncStatus("Sincronizado");
 }
+
+async function loadOnlineOrders(){
+ const {data,error}=await db.from("v16_orders").select("id,order_number,total,status,requested_payment_method,customer_name,customer_phone,customer_address,notes,created_at,v16_order_items(product_name,quantity,subtotal)").eq("source","online").in("status",["awaiting_confirmation","pending","preparing","ready"]).order("created_at",{ascending:false});
+ if(error)return toast(error.message);
+ $("#onlineOrdersList").innerHTML=(data||[]).map(o=>`<article class="online-order-card"><div class="online-order-head"><div><span class="badge ${o.status}">${statusLabel(o.status)}</span><h3>Pedido web #${o.order_number}</h3><small>${new Date(o.created_at).toLocaleString("es-EC")}</small></div><strong>${money(o.total)}</strong></div><div class="online-customer"><b>${esc(o.customer_name||"Cliente web")}</b><span>${esc(o.customer_phone||"")}</span><span>${esc(o.customer_address||"Retiro en local")}</span><span>Pago: ${esc(paymentMethods.find(m=>m.code===o.requested_payment_method)?.name||o.requested_payment_method||"Por definir")}</span></div><ul>${(o.v16_order_items||[]).map(i=>`<li>${i.quantity} × ${esc(i.product_name)} — ${money(i.subtotal)}</li>`).join("")}</ul>${o.notes?`<p class="notice">${esc(o.notes)}</p>`:""}<div class="online-actions">${o.status==="awaiting_confirmation"?`<button class="primary" data-confirm="${o.id}">Confirmar y enviar a Cocina</button><button data-reject="${o.id}">Rechazar</button>`:`<span class="badge ${o.status}">${statusLabel(o.status)}</span>`}</div></article>`).join("")||"<p>No hay pedidos web pendientes.</p>";
+ $("#onlineOrdersList").querySelectorAll("[data-confirm]").forEach(b=>b.onclick=async()=>{const {error}=await db.rpc("v16_confirm_online_order",{p_order_id:b.dataset.confirm,p_staff_id:sessionStaff.id,p_pin:sessionPin});if(error)return toast(error.message);toast("Pedido confirmado");await Promise.all([loadOnlineOrders(),loadKitchen(),loadDashboard(),loadPendingPayments()])});
+ $("#onlineOrdersList").querySelectorAll("[data-reject]").forEach(b=>b.onclick=async()=>{if(!confirm("¿Rechazar este pedido?"))return;const {error}=await db.rpc("v16_reject_online_order",{p_order_id:b.dataset.reject,p_staff_id:sessionStaff.id,p_pin:sessionPin});if(error)return toast(error.message);toast("Pedido rechazado");loadOnlineOrders()});
+}
+
 async function loadCommands(){
   await loadCatalog();renderCategoryChips("#commandCategories",renderCommandProducts);renderCommandProducts();renderCommandCart();
   const {data,error}=await db.from("v16_tables").select("*").eq("active",true).order("sort_order");if(error)return toast(error.message);
@@ -389,6 +399,7 @@ $("#posSearch").oninput=()=>renderPosProducts($("#posCategories .active")?.datas
 $("#commandSearch").oninput=()=>renderCommandProducts($("#commandCategories .active")?.dataset.cat||"all");
 $("#sendPosKitchen").onclick=()=>createOrder(posCart,"pos",null,false);$("#chargePos").onclick=async()=>{const o=await createOrder(posCart,"pos",null,false);if(o)openPayment(o)};
 $("#sendCommand").onclick=()=>{if(!selectedTable)return toast("Selecciona una mesa");if(selectedTable.current_order_id)return toast("La mesa ya tiene una cuenta abierta");createOrder(commandCart,"command",selectedTable.id,false).then(()=>loadCommands())};
+$("#refreshOnlineOrders").onclick=loadOnlineOrders;
 $("#refreshTables").onclick=loadCommands;$("#refreshKitchen").onclick=loadKitchen;$("#closePayment").onclick=()=>$("#paymentModal").classList.add("hidden");$("#paymentMethod").onchange=updateChange;$("#paymentReceived").oninput=updateChange;$("#confirmPayment").onclick=confirmPayment;
 $("#productForm").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);const {error}=await db.from("v16_products").insert(Object.fromEntries(f));if(error)return toast(error.message);e.target.reset();toast("Producto guardado");loadProductsAdmin()};
 $("#inventoryForm").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));["stock","minimum_stock","cost"].forEach(k=>f[k]=Number(f[k]||0));const {error}=await db.from("v16_inventory").insert(f);if(error)return toast(error.message);e.target.reset();toast("Ingrediente guardado");loadInventory()};
