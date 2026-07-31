@@ -1,1 +1,118 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pedir | Mordisco</title><link rel="stylesheet" href="/online.css?v=16.4.0"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body><header><a href="/"><img src="/logo.png"><b>MORDISCO</b></a><span>Pedidos en línea</span></header><main><section class="catalog"><h1>Arma tu pedido</h1><div id="onlineCategories" class="chips"></div><input id="onlineSearch" placeholder="Buscar producto"><div id="onlineProducts" class="products"></div></section><aside class="cart"><h2>Tu pedido</h2><div id="onlineCart"></div><div class="total"><span>Total</span><strong id="onlineTotal">$0.00</strong></div><label>Nombre<input id="customerName"></label><label>Teléfono<input id="customerPhone"></label><label>Entrega<select id="deliveryType"><option value="pickup">Retiro en local</option><option value="delivery">Entrega a domicilio</option></select></label><label id="addressWrap" class="hidden">Dirección<textarea id="customerAddress"></textarea></label><label>Forma de pago<select id="requestedPayment"></select></label><label>Notas<textarea id="onlineNotes"></textarea></label><button id="submitOnlineOrder">Enviar pedido</button><p>Caja revisará el pedido antes de enviarlo a Cocina.</p></aside></main><div id="onlineMessage"></div><script src="/online.js?v=16.4.0"></script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111111">
+  <title>Pedir | Mordisco Fast Food</title>
+  <link rel="icon" href="/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/online.css?v=16.8.0">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="top-strip">🔥 PEDIDOS EN LÍNEA · FÁCIL, RÁPIDO Y DIRECTO A COCINA</div>
+
+  <header class="order-header">
+    <a class="brand" href="/">
+      <img src="/logo.png" alt="Mordisco">
+      <div><b>MORDISCO</b><span>FAST FOOD</span></div>
+    </a>
+    <div class="order-progress">
+      <span class="active">1. Elige</span>
+      <i></i>
+      <span>2. Confirma</span>
+      <i></i>
+      <span>3. Disfruta</span>
+    </div>
+    <a class="back-home" href="/">Volver al inicio</a>
+  </header>
+
+  <main class="order-layout">
+    <section class="catalog">
+      <div class="catalog-hero">
+        <div>
+          <span class="eyebrow">MENÚ MORDISCO</span>
+          <h1>Arma tu pedido</h1>
+          <p>Elige tus favoritos. Nosotros hacemos el resto.</p>
+        </div>
+        <div class="hero-mini">
+          <b>🔥 Preparado al momento</b>
+          <span>Pedidos confirmados por Caja</span>
+        </div>
+      </div>
+
+      <div class="catalog-tools">
+        <div id="onlineCategories" class="chips"></div>
+        <div class="search-box">
+          <span>⌕</span>
+          <input id="onlineSearch" placeholder="Buscar hamburguesas, bebidas, combos...">
+        </div>
+      </div>
+
+      <div id="onlineProducts" class="products"></div>
+    </section>
+
+    <aside class="cart">
+      <div class="cart-head">
+        <div>
+          <span class="eyebrow">TU ORDEN</span>
+          <h2>Tu pedido</h2>
+        </div>
+        <span id="cartCount" class="cart-count">0</span>
+      </div>
+
+      <div id="onlineCart" class="cart-lines"></div>
+
+      <div class="cart-summary">
+        <div><span>Subtotal</span><strong id="onlineSubtotal">$0.00</strong></div>
+        <div><span>Entrega</span><strong>A confirmar</strong></div>
+        <div class="total"><span>Total</span><strong id="onlineTotal">$0.00</strong></div>
+      </div>
+
+      <div class="checkout">
+        <h3>Datos del pedido</h3>
+
+        <label>Nombre
+          <input id="customerName" autocomplete="name" placeholder="Tu nombre">
+        </label>
+
+        <label>Teléfono
+          <input id="customerPhone" autocomplete="tel" placeholder="099 000 0000">
+        </label>
+
+        <label>Entrega
+          <select id="deliveryType">
+            <option value="pickup">Retiro en local</option>
+            <option value="delivery">Entrega a domicilio</option>
+          </select>
+        </label>
+
+        <label id="addressWrap" class="hidden">Dirección
+          <textarea id="customerAddress" placeholder="Dirección y referencia"></textarea>
+        </label>
+
+        <label>Forma de pago
+          <select id="requestedPayment"></select>
+        </label>
+
+        <label>Notas
+          <textarea id="onlineNotes" placeholder="Sin cebolla, salsa aparte, referencia de entrega..."></textarea>
+        </label>
+
+        <button id="submitOnlineOrder" class="submit-order">
+          <span>Enviar pedido</span>
+          <b>→</b>
+        </button>
+
+        <p class="checkout-note">Caja revisará y confirmará el pedido antes de enviarlo a Cocina.</p>
+      </div>
+    </aside>
+  </main>
+
+  <div id="onlineMessage"></div>
+  <script src="/online.js?v=16.8.0"></script>
+</body>
+</html>
