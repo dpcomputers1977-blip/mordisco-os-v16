@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#15120e">
   <title>Mordisco OS V16</title>
   <link rel="icon" href="/icon-192.png">
-  <link rel="stylesheet" href="/styles.css?v=16.1.0">
+  <link rel="stylesheet" href="/styles.css?v=16.2.0">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -90,7 +90,7 @@
             <div id="posProducts" class="product-grid"></div>
           </section>
           <aside class="panel cart-panel">
-            <h3>Cuenta de Caja</h3>
+            <div class="panel-head"><h3>Cuenta de Caja</h3><button id="openCashClose">Cierre de caja</button></div>
             <label>Cliente <select id="posCustomer"><option value="">Consumidor final</option></select></label>
             <label>Tipo
               <select id="posOrderType"><option value="local">Local</option><option value="takeaway">Para llevar</option></select>
@@ -102,6 +102,9 @@
             <hr>
             <h4>Órdenes pendientes de cobro</h4>
             <div id="pendingPayments"></div>
+            <hr>
+            <h4>Resumen de hoy</h4>
+            <div id="posPaymentSummary" class="summary-list"></div>
           </aside>
         </div>
       </section>
@@ -228,6 +231,30 @@
     </section>
   </div>
 
+
+  <div id="cashCloseModal" class="modal hidden">
+    <div class="modal-card cash-close-card">
+      <button id="closeCashClose" class="modal-close">×</button>
+      <span class="eyebrow">CIERRE DE CAJA</span>
+      <h2 id="cashCloseTitle">Resumen del día</h2>
+      <div class="cash-close-summary">
+        <div><span>Ventas totales</span><strong id="cashCloseSales">$0.00</strong></div>
+        <div><span>Egresos</span><strong id="cashCloseExpenses">$0.00</strong></div>
+        <div><span>Resultado</span><strong id="cashCloseResult">$0.00</strong></div>
+      </div>
+      <div id="cashCloseMethods" class="summary-list"></div>
+      <label>Efectivo contado en caja
+        <input id="cashCounted" type="number" min="0" step=".01" value="0">
+      </label>
+      <div class="total-row"><span>Diferencia de efectivo</span><strong id="cashDifference">$0.00</strong></div>
+      <textarea id="cashCloseNotes" placeholder="Observaciones del cierre"></textarea>
+      <div class="cash-close-actions">
+        <button id="printCashClose">Imprimir</button>
+        <button id="saveCashClose" class="primary">Guardar cierre</button>
+      </div>
+    </div>
+  </div>
+
   <div id="paymentModal" class="modal hidden">
     <div class="modal-card">
       <button id="closePayment" class="modal-close">×</button>
@@ -243,6 +270,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=16.1.0"></script>
+  <script src="/app.js?v=16.2.0"></script>
 </body>
 </html>

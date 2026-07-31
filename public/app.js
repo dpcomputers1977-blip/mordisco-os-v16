@@ -4,7 +4,7 @@ const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const money=n=>new Intl.NumberFormat("es-EC",{style:"currency",currency:"USD"}).format(Number(n||0));
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-let sessionStaff=null, sessionPin="", products=[],categories=[],customers=[],paymentMethods=[],posCart=[],commandCart=[],selectedTable=null,paymentOrder=null;
+let sessionStaff=null, sessionPin="", products=[],categories=[],customers=[],paymentMethods=[],posCart=[],commandCart=[],selectedTable=null,paymentOrder=null,cashCloseData=null;
 
 function toast(message){const t=$("#toast");t.textContent=message;t.style.display="block";clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>t.style.display="none",2800)}
 function roleLabel(r){return({admin:"Administrador",cashier:"Cajero",waiter:"Mesero",kitchen:"Cocina"})[r]||r}
@@ -92,7 +92,7 @@ async function loadPos(){
   await Promise.all([loadCatalog(),loadPaymentMethods()]);
   $("#posCustomer").innerHTML='<option value="">Consumidor final</option>'+customers.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");
   renderCategoryChips("#posCategories",renderPosProducts);
-  renderPosProducts();renderPosCart();loadPendingPayments();
+  renderPosProducts();renderPosCart();loadPendingPayments();loadPosPaymentSummary();
 }
 function renderCategoryChips(target,callback){
   const el=$(target);el.innerHTML=`<button class="active" data-cat="all">Todas</button>`+categories.map(c=>`<button data-cat="${c.id}">${esc(c.name)}</button>`).join("");
@@ -131,6 +131,23 @@ async function createOrder(cart,source,tableId=null,payNow=false){
   if(payNow)openPayment(data);else{loadPendingPayments();loadDashboard()}
   return data;
 }
+
+async function loadPosPaymentSummary(){
+  if(!paymentMethods.length) await loadPaymentMethods();
+  const start=todayISO()+"T00:00:00";
+  const {data,error}=await db.from("v16_orders")
+    .select("total,payment_method,payment_status")
+    .eq("payment_status","paid")
+    .gte("paid_at",start);
+  if(error)return toast(error.message);
+  const rows=data||[];
+  $("#posPaymentSummary").innerHTML=paymentMethods.map(m=>{
+    const methodRows=rows.filter(x=>x.payment_method===m.code);
+    const amount=methodRows.reduce((s,x)=>s+Number(x.total),0);
+    return `<div><span>${esc(m.name)} <small>(${methodRows.length})</small></span><b>${money(amount)}</b></div>`;
+  }).join("")||"Sin ventas hoy";
+}
+
 async function loadPendingPayments(){
   const {data,error}=await db.from("v16_orders").select("id,order_number,total,source,created_at").eq("payment_status","unpaid").order("created_at",{ascending:false}).limit(20);
   if(error)return;
@@ -163,7 +180,11 @@ async function confirmPayment(){
   if(methodInfo.requires_cash&&received<Number(paymentOrder.total))return toast("El efectivo recibido es menor al total");
   const {error}=await db.rpc("v16_pay_order",{p_order_id:paymentOrder.id,p_method:method,p_received:received,p_staff_id:sessionStaff.id,p_pin:sessionPin});
   if(error)return toast(error.message);
-  $("#paymentModal").classList.add("hidden");toast("Cobro registrado correctamente");loadPendingPayments();loadDashboard();
+  $("#paymentModal").classList.add("hidden");
+  toast("Cobro registrado correctamente");
+  loadPendingPayments();
+  loadPosPaymentSummary();
+  loadDashboard();
 }
 async function loadCommands(){
   await loadCatalog();renderCategoryChips("#commandCategories",renderCommandProducts);renderCommandProducts();renderCommandCart();
@@ -197,6 +218,79 @@ async function loadStaffAdmin(){
   $("#staffList").innerHTML=(data||[]).map(s=>`<div class="list-row"><div><b>${esc(s.name)}</b><small> ${roleLabel(s.role)}</small></div><span class="badge ${s.active?"paid":"pending"}">${s.active?"Activo":"Inactivo"}</span>${s.role!=="admin"?`<button data-toggle="${s.id}" data-active="${s.active}">${s.active?"Desactivar":"Activar"}</button>`:""}</div>`).join("");
   $("#staffList").querySelectorAll("[data-toggle]").forEach(b=>b.onclick=async()=>{const {error}=await db.rpc("v16_toggle_staff",{p_target_id:b.dataset.toggle,p_active:b.dataset.active!=="true",p_admin_id:sessionStaff.id,p_pin:sessionPin});if(error)return toast(error.message);loadStaffAdmin()});
 }
+
+async function openCashClose(){
+  if(!paymentMethods.length) await loadPaymentMethods();
+  const start=todayISO()+"T00:00:00";
+  const [sales,expenses]=await Promise.all([
+    db.from("v16_orders").select("total,payment_method,payment_status,paid_at").eq("payment_status","paid").gte("paid_at",start),
+    db.from("v16_expenses").select("amount").gte("created_at",start)
+  ]);
+  if(sales.error)return toast(sales.error.message);
+  if(expenses.error)return toast(expenses.error.message);
+
+  const saleRows=sales.data||[],expenseRows=expenses.data||[];
+  const salesTotal=saleRows.reduce((s,x)=>s+Number(x.total),0);
+  const expenseTotal=expenseRows.reduce((s,x)=>s+Number(x.amount),0);
+  const methods=paymentMethods.map(m=>{
+    const rows=saleRows.filter(x=>x.payment_method===m.code);
+    return {code:m.code,name:m.name,requires_cash:m.requires_cash,count:rows.length,total:rows.reduce((s,x)=>s+Number(x.total),0)};
+  });
+  cashCloseData={date:todayISO(),salesTotal,expenseTotal,result:salesTotal-expenseTotal,methods};
+
+  $("#cashCloseTitle").textContent=`Cierre ${new Date().toLocaleDateString("es-EC")}`;
+  $("#cashCloseSales").textContent=money(salesTotal);
+  $("#cashCloseExpenses").textContent=money(expenseTotal);
+  $("#cashCloseResult").textContent=money(salesTotal-expenseTotal);
+  $("#cashCloseMethods").innerHTML=methods.map(m=>`<div><span>${esc(m.name)} <small>(${m.count})</small></span><b>${money(m.total)}</b></div>`).join("");
+  const expectedCash=methods.filter(m=>m.requires_cash).reduce((s,m)=>s+m.total,0);
+  $("#cashCounted").value=expectedCash.toFixed(2);
+  updateCashDifference();
+  $("#cashCloseModal").classList.remove("hidden");
+}
+function expectedCashTotal(){
+  return (cashCloseData?.methods||[]).filter(m=>m.requires_cash).reduce((s,m)=>s+Number(m.total),0);
+}
+function updateCashDifference(){
+  $("#cashDifference").textContent=money(Number($("#cashCounted").value||0)-expectedCashTotal());
+}
+async function saveCashClose(){
+  if(!cashCloseData)return;
+  const counted=Number($("#cashCounted").value||0);
+  const payload={
+    close_date:cashCloseData.date,
+    staff_id:sessionStaff.id,
+    sales_total:cashCloseData.salesTotal,
+    expenses_total:cashCloseData.expenseTotal,
+    expected_cash:expectedCashTotal(),
+    counted_cash:counted,
+    difference:counted-expectedCashTotal(),
+    payment_breakdown:cashCloseData.methods,
+    notes:$("#cashCloseNotes").value.trim()
+  };
+  const {error}=await db.rpc("v16_save_cash_close",{
+    p_staff_id:sessionStaff.id,
+    p_pin:sessionPin,
+    p_sales_total:payload.sales_total,
+    p_expenses_total:payload.expenses_total,
+    p_expected_cash:payload.expected_cash,
+    p_counted_cash:payload.counted_cash,
+    p_difference:payload.difference,
+    p_payment_breakdown:payload.payment_breakdown,
+    p_notes:payload.notes
+  });
+  if(error)return toast(error.message);
+  toast("Cierre de caja guardado");
+  $("#cashCloseModal").classList.add("hidden");
+}
+function printCashClose(){
+  if(!cashCloseData)return;
+  const rows=cashCloseData.methods.map(m=>`<tr><td>${esc(m.name)}</td><td>${m.count}</td><td>${money(m.total)}</td></tr>`).join("");
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Cierre de Caja</title><style>body{font-family:Arial;padding:24px}h1{margin-bottom:4px}table{width:100%;border-collapse:collapse;margin-top:18px}td,th{padding:8px;border-bottom:1px solid #ddd;text-align:left}.totals{margin-top:20px;font-size:18px}.brand{font-weight:bold}</style></head><body><div class="brand">Mordisco Fast Food</div><h1>Cierre de Caja</h1><p>${new Date().toLocaleString("es-EC")}</p><table><thead><tr><th>Método</th><th>Ventas</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table><div class="totals"><p>Ventas: <b>${money(cashCloseData.salesTotal)}</b></p><p>Egresos: <b>${money(cashCloseData.expenseTotal)}</b></p><p>Resultado: <b>${money(cashCloseData.result)}</b></p><p>Efectivo contado: <b>${money(Number($("#cashCounted").value||0))}</b></p><p>Diferencia: <b>${money(Number($("#cashCounted").value||0)-expectedCashTotal())}</b></p></div></body></html>`;
+  const w=window.open("","_blank","width=760,height=900");
+  w.document.write(html);w.document.close();w.focus();w.print();
+}
+
 async function loadAccounting(){
   if(!paymentMethods.length) await loadPaymentMethods();
   const start=todayISO()+"T00:00:00";
@@ -206,6 +300,10 @@ async function loadAccounting(){
   const movements=[...(sales.data||[]).map(x=>({date:x.paid_at,label:`Venta #${x.order_number} · ${esc(paymentMethods.find(m=>m.code===x.payment_method)?.name||x.payment_method||"Sin método")}`,amount:x.total,type:"income"})),...(expenses.data||[]).map(x=>({date:x.created_at,label:x.description,amount:x.amount,type:"expense"}))].sort((a,b)=>new Date(b.date)-new Date(a.date));
   $("#accountingList").innerHTML=movements.map(m=>`<div class="list-row"><div><b>${m.label}</b><small> ${new Date(m.date).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})}</small></div><strong>${m.type==="expense"?"−":"+"}${money(m.amount)}</strong></div>`).join("")||"Sin movimientos hoy";
   await loadPaymentMethodsAdmin();
+  const {data:closes}=await db.from("v16_cash_closes").select("*").order("created_at",{ascending:false}).limit(10);
+  if(closes?.length){
+    $("#accountingList").innerHTML += `<hr><h4>Cierres recientes</h4>`+closes.map(c=>`<div class="list-row"><div><b>Cierre ${new Date(c.created_at).toLocaleDateString("es-EC")}</b><small> ${new Date(c.created_at).toLocaleTimeString("es-EC",{hour:"2-digit",minute:"2-digit"})}</small></div><strong>${money(c.sales_total-c.expenses_total)}</strong><span class="badge ${Number(c.difference)===0?"paid":"pending"}">Dif. ${money(c.difference)}</span></div>`).join("");
+  }
 }
 async function loadPaymentMethodsAdmin(){
   const {data,error}=await db.from("v16_payment_methods").select("*").order("sort_order");
@@ -229,6 +327,11 @@ $("#inventoryForm").onsubmit=async e=>{e.preventDefault();const f=Object.fromEnt
 $("#customerForm").onsubmit=async e=>{e.preventDefault();const {error}=await db.from("v16_customers").insert(Object.fromEntries(new FormData(e.target)));if(error)return toast(error.message);e.target.reset();toast("Cliente guardado");loadCustomers()};
 $("#staffForm").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));const {error}=await db.rpc("v16_create_staff",{p_name:f.name,p_role:f.role,p_pin:f.pin,p_admin_id:sessionStaff.id,p_admin_pin:sessionPin});if(error)return toast(error.message);e.target.reset();toast("Empleado creado");loadStaffAdmin()};
 $("#expenseForm").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));f.amount=Number(f.amount);f.created_by=sessionStaff.id;const {error}=await db.from("v16_expenses").insert(f);if(error)return toast(error.message);e.target.reset();toast("Egreso registrado");loadAccounting()};
+$("#openCashClose").onclick=openCashClose;
+$("#closeCashClose").onclick=()=>$("#cashCloseModal").classList.add("hidden");
+$("#cashCounted").oninput=updateCashDifference;
+$("#saveCashClose").onclick=saveCashClose;
+$("#printCashClose").onclick=printCashClose;
 $("#addPaymentMethod").onclick=async()=>{
   const name=prompt("Nombre del método de pago:");
   if(!name)return;
