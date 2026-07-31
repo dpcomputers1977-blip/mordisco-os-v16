@@ -4,23 +4,23 @@
   "rewrites": [
     {
       "source": "/pedir",
-      "destination": "/online.html"
+      "destination": "/online"
     },
     {
       "source": "/admin",
-      "destination": "/admin.html"
+      "destination": "/admin"
     },
     {
       "source": "/caja",
-      "destination": "/admin.html"
+      "destination": "/admin"
     },
     {
       "source": "/comandas",
-      "destination": "/admin.html"
+      "destination": "/admin"
     },
     {
       "source": "/cocina",
-      "destination": "/admin.html"
+      "destination": "/admin"
     }
   ]
 }
