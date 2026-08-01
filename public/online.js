@@ -7,19 +7,45 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&
 let products=[],categories=[],methods=[],cart=[];
 
 async function load(){
-  const [p,c,m]=await Promise.all([
-    db.from("v16_products").select("*,v16_categories(name)").eq("active",true).order("name"),
-    db.from("v16_categories").select("*").eq("active",true).order("sort_order"),
-    db.from("v16_payment_methods").select("*").eq("active",true).order("sort_order")
-  ]);
-  products=p.data||[];categories=c.data||[];methods=m.data||[];
-  $("#onlineCategories").innerHTML='<button class="active" data-cat="all">Todos</button>'+categories.map(x=>`<button data-cat="${x.id}">${esc(x.name)}</button>`).join("");
-  $("#onlineCategories").querySelectorAll("button").forEach(b=>b.onclick=()=>{
-    $("#onlineCategories").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
-    b.classList.add("active");renderProducts(b.dataset.cat);
-  });
-  $("#requestedPayment").innerHTML=methods.map(x=>`<option value="${x.code}">${esc(x.name)}</option>`).join("");
-  renderProducts("all");renderCart();
+  try{
+    const [p,c,m]=await Promise.all([
+      db.from("v16_products").select("*").eq("active",true).order("name"),
+      db.from("v16_categories").select("*").eq("active",true).order("sort_order"),
+      db.from("v16_payment_methods").select("*").eq("active",true).order("sort_order")
+    ]);
+
+    if(p.error) throw p.error;
+    if(c.error) throw c.error;
+    if(m.error) console.warn("Métodos de pago:",m.error);
+
+    products=(p.data||[]).map(product=>({
+      ...product,
+      category_name:(c.data||[]).find(category=>String(category.id)===String(product.category_id))?.name||"Mordisco"
+    }));
+    categories=c.data||[];
+    methods=m.data||[];
+
+    $("#onlineCategories").innerHTML=
+      '<button class="active" data-cat="all">Todos</button>'+
+      categories.map(x=>`<button data-cat="${x.id}">${esc(x.name)}</button>`).join("");
+
+    $("#onlineCategories").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+      $("#onlineCategories").querySelectorAll("button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      renderProducts(b.dataset.cat);
+    });
+
+    $("#requestedPayment").innerHTML=methods.length
+      ? methods.map(x=>`<option value="${x.code}">${esc(x.name)}</option>`).join("")
+      : '<option value="cash">Efectivo</option>';
+
+    renderProducts("all");
+    renderCart();
+  }catch(error){
+    console.error("Error cargando el menú:",error);
+    $("#onlineProducts").innerHTML=
+      `<div class="error-state"><b>No se pudo cargar el menú.</b><br>${esc(error.message||"Error de conexión")}<br><button onclick="location.reload()">Reintentar</button></div>`;
+  }
 }
 
 function activeCategory(){
@@ -29,7 +55,7 @@ function activeCategory(){
 function renderProducts(cat){
   const q=$("#onlineSearch").value.trim().toLowerCase();
   const rows=products.filter(p=>(cat==="all"||String(p.category_id)===cat)&&(`${p.name} ${p.description||""}`).toLowerCase().includes(q));
-  $("#onlineProducts").innerHTML=rows.map(p=>`<button class="product" data-id="${p.id}"><img src="${esc(p.image_url||"/media/hamburguesa.png")}" alt="${esc(p.name)}"><div><b>${esc(p.name)}</b><small>${esc(p.v16_categories?.name||"Mordisco")}</small><strong>${money(p.price)}</strong></div></button>`).join("")||"<p>No encontramos productos con esa búsqueda.</p>";
+  $("#onlineProducts").innerHTML=rows.map(p=>`<button class="product" data-id="${p.id}"><img src="${esc(p.image_url||"/media/hamburguesa.png")}" alt="${esc(p.name)}"><div><b>${esc(p.name)}</b><small>${esc(p.category_name||"Mordisco")}</small><strong>${money(p.price)}</strong></div></button>`).join("")||"<p>No encontramos productos con esa búsqueda.</p>";
   $("#onlineProducts").querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>{
     const r=cart.find(x=>x.id===b.dataset.id);
     if(r)r.qty++;else cart.push({id:b.dataset.id,qty:1});
