@@ -67,3 +67,217 @@
   .mobile-client-nav span{font-size:1.15rem}
   .mobile-order-main{width:58px;height:58px;margin:-27px auto 0;align-content:center;background:#ffc400;color:#111!important;border-radius:50%}
 }
+
+/* V17.2 — CORRECCIÓN MÓVIL Y ACCESO DE EMPLEADOS */
+.employee-access-link{
+  grid-column:1/-1;
+  justify-self:center;
+  margin-top:2px;
+  color:#777;
+  font-size:.7rem;
+  text-decoration:none;
+}
+.employee-access-link:hover{color:#ffc400}
+
+@media(max-width:760px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden}
+  *{max-width:100%}
+
+  .top-strip{
+    padding:8px 12px;
+    font-size:.58rem;
+    line-height:1.35;
+    white-space:normal;
+  }
+
+  .site-header{
+    width:100%;
+    height:66px;
+    padding:0 12px;
+    gap:8px;
+  }
+  .brand{min-width:0;flex:1}
+  .brand img{width:42px;height:40px;flex:0 0 auto}
+  .brand div{min-width:0}
+  .brand b{font-size:.82rem;white-space:nowrap}
+  .brand span{display:none}
+  .header-actions{margin-left:auto;flex:0 0 auto}
+  .order-button{
+    padding:10px 11px;
+    font-size:.72rem;
+    white-space:nowrap;
+  }
+  .order-button span{display:none}
+
+  .hero{
+    width:100%;
+    min-height:auto;
+    display:flex;
+    flex-direction:column;
+    padding:34px 16px 22px;
+    background:linear-gradient(160deg,#111 0 64%,#f1b700 64% 100%);
+  }
+  .hero-copy{
+    width:100%;
+    text-align:center;
+    order:1;
+  }
+  .hero h1{
+    font-size:clamp(3rem,16vw,4.1rem);
+    line-height:.9;
+    overflow-wrap:normal;
+  }
+  .hero p{
+    width:100%;
+    max-width:520px;
+    font-size:.9rem;
+    line-height:1.5;
+  }
+  .hero-actions{
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:9px;
+  }
+  .hero-actions a{
+    width:100%;
+    text-align:center;
+    padding:12px 8px;
+    font-size:.78rem;
+  }
+  .hero-stats{
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:6px;
+  }
+  .hero-stats div{min-width:0}
+  .hero-stats strong{font-size:.78rem}
+  .hero-stats span{font-size:.58rem}
+
+  .hero-visual{
+    order:2;
+    width:100%;
+    height:300px;
+    margin:0;
+    overflow:visible;
+  }
+  .hero-visual>img{
+    width:100%!important;
+    max-width:430px!important;
+    height:100%;
+    max-height:300px!important;
+    transform:none!important;
+    object-fit:contain;
+  }
+  .hero-ring{
+    width:260px!important;
+    height:260px!important;
+  }
+  .floating-card{
+    display:none;
+  }
+
+  .ticker{
+    width:100%;
+    justify-content:flex-start;
+    gap:13px;
+    padding:10px 12px;
+    font-size:.78rem;
+    overflow-x:auto;
+  }
+
+  .menu-section,
+  .order-steps{
+    width:100%;
+    padding:48px 14px;
+  }
+  .section-heading{
+    display:block;
+  }
+  .section-heading h2{
+    font-size:2.45rem;
+  }
+  .section-heading>a{
+    display:inline-block;
+    margin-top:14px;
+  }
+
+  .category-tabs{
+    width:100%;
+    padding-bottom:4px;
+  }
+
+  .product-grid{
+    width:100%;
+    grid-template-columns:1fr!important;
+    gap:13px;
+  }
+  .product-card{
+    width:100%;
+  }
+  .product-card img{
+    width:100%;
+    height:220px!important;
+    object-fit:cover;
+  }
+
+  .promo-grid{
+    width:100%;
+    display:block;
+    padding:0 14px 48px;
+  }
+  .promo{
+    width:100%;
+    min-height:280px;
+    margin-bottom:13px;
+    padding:24px;
+  }
+  .promo h3{font-size:2.35rem}
+  .promo-main{
+    display:block;
+    min-height:390px;
+  }
+  .promo-main>div{width:100%}
+  .promo-main img{
+    width:75%;
+    right:-7%;
+    bottom:-4%;
+  }
+
+  .about{
+    width:calc(100% - 28px);
+    margin:0 14px 48px;
+    display:block;
+  }
+  .about-image{min-height:280px}
+  .about-copy{padding:25px}
+  .about-copy h2{font-size:2.45rem}
+
+  .steps{grid-template-columns:1fr}
+
+  .final-cta{
+    width:calc(100% - 28px);
+    margin:0 14px 45px;
+    padding:25px;
+  }
+  .final-cta h2{font-size:2.7rem}
+  .final-cta a{width:100%;text-align:center}
+
+  footer{
+    width:100%;
+    display:block;
+    padding:35px 18px 100px;
+    text-align:center;
+  }
+  .footer-brand{justify-content:center}
+  .footer-links{justify-content:center;margin:20px 0}
+  footer small{display:block}
+  .employee-access-link{
+    display:inline-block;
+    margin-top:16px;
+    padding:8px 12px;
+    border:1px solid #333;
+    border-radius:8px;
+  }
+}
