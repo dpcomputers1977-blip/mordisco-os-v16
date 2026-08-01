@@ -281,3 +281,204 @@
     border-radius:8px;
   }
 }
+
+/* MORDISCO OS V18 — CLIENTES Y ADMINISTRACIÓN SEPARADOS */
+.employee-header-link{
+  color:#ffc400;
+  font-size:.78rem;
+  font-weight:800;
+  text-decoration:none;
+  padding:9px 11px;
+  border:1px solid #ffc40055;
+  border-radius:9px;
+}
+.employee-header-link:hover{background:#ffc400;color:#111}
+
+.employee-footer-wrap{
+  grid-column:1/-1;
+  display:flex;
+  justify-content:center;
+  margin-top:10px;
+}
+.employee-access-link{
+  color:#8d857b;
+  font-size:.74rem;
+  text-decoration:none;
+  padding:9px 13px;
+  border:1px solid #333;
+  border-radius:9px;
+}
+.employee-access-link:hover{color:#ffc400;border-color:#ffc40066}
+
+@media(max-width:760px){
+  html,body{width:100%;max-width:100%;overflow-x:hidden}
+  body{padding-bottom:72px}
+  .site-header{
+    height:66px;
+    padding:0 10px;
+    gap:6px;
+  }
+  .brand{flex:1;min-width:0}
+  .brand img{width:42px;height:40px}
+  .brand b{font-size:.78rem}
+  .brand span{display:none}
+  .header-actions{gap:6px;margin-left:auto}
+  .employee-header-link{
+    font-size:.64rem;
+    padding:8px 8px;
+  }
+  .order-button{
+    font-size:.68rem;
+    padding:9px 9px;
+    white-space:nowrap;
+  }
+  .order-button span{display:none}
+
+  .hero{
+    display:flex!important;
+    flex-direction:column;
+    width:100%;
+    min-height:auto;
+    padding:32px 14px 20px;
+    background:linear-gradient(158deg,#111 0 64%,#f3b700 64% 100%)!important;
+  }
+  .hero-copy{
+    width:100%;
+    order:1;
+    text-align:center;
+  }
+  .hero h1{
+    font-size:clamp(2.9rem,15vw,4rem)!important;
+    line-height:.9;
+    margin:14px 0;
+  }
+  .hero p{
+    width:100%;
+    max-width:520px;
+    margin:0 auto;
+    font-size:.9rem;
+    line-height:1.5;
+  }
+  .hero-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    width:100%;
+    gap:8px;
+    margin:20px 0;
+  }
+  .hero-actions a{
+    width:100%;
+    padding:11px 8px;
+    font-size:.76rem;
+    text-align:center;
+  }
+  .hero-stats{
+    display:grid!important;
+    grid-template-columns:repeat(3,1fr);
+    width:100%;
+    gap:5px;
+    margin-top:18px;
+  }
+  .hero-stats strong{font-size:.76rem}
+  .hero-stats span{font-size:.56rem}
+
+  .hero-visual{
+    order:2;
+    width:100%;
+    height:300px!important;
+    overflow:visible;
+  }
+  .hero-visual>img{
+    width:100%!important;
+    max-width:430px!important;
+    max-height:300px!important;
+    height:100%;
+    object-fit:contain;
+    transform:none!important;
+  }
+  .hero-ring{
+    width:260px!important;
+    height:260px!important;
+  }
+  .floating-card{display:none!important}
+  .price-badge{display:none!important}
+
+  .ticker{
+    width:100%;
+    overflow-x:auto;
+    justify-content:flex-start;
+    gap:12px;
+    padding:10px 12px;
+    font-size:.76rem;
+  }
+
+  .menu-section,.order-steps{
+    width:100%;
+    padding:46px 14px;
+  }
+  .section-heading{
+    display:block;
+  }
+  .section-heading h2{font-size:2.35rem}
+  .section-heading>a{display:inline-block;margin-top:12px}
+
+  .product-grid{
+    width:100%;
+    grid-template-columns:1fr!important;
+    gap:12px;
+  }
+  .product-card{width:100%}
+  .product-card img{width:100%;height:220px!important}
+
+  .promo-grid{
+    display:block;
+    width:100%;
+    padding:0 14px 46px;
+  }
+  .promo{
+    width:100%;
+    min-height:270px;
+    margin-bottom:12px;
+    padding:22px;
+  }
+  .promo-main{min-height:380px}
+  .promo-main>div{width:100%}
+  .promo-main img{width:75%;right:-5%;bottom:-3%}
+
+  .about{
+    width:calc(100% - 28px);
+    margin:0 14px 46px;
+    display:block;
+  }
+  .about-image{min-height:275px}
+  .about-copy{padding:24px}
+  .about-copy h2{font-size:2.35rem}
+
+  .steps{grid-template-columns:1fr!important}
+  .final-cta{
+    width:calc(100% - 28px);
+    margin:0 14px 42px;
+    padding:24px;
+  }
+  .final-cta h2{font-size:2.6rem}
+  .final-cta a{width:100%;text-align:center}
+
+  footer{
+    display:block;
+    width:100%;
+    padding:34px 16px 96px;
+    text-align:center;
+  }
+  .footer-brand{justify-content:center}
+  .footer-links{justify-content:center;margin:18px 0}
+  .employee-footer-wrap{margin-top:18px}
+}
+
+/* Small phones */
+@media(max-width:390px){
+  .employee-header-link{display:none}
+  .hero h1{font-size:2.8rem!important}
+  .hero-visual{height:270px!important}
+  .hero-visual>img{max-height:270px!important}
+  .hero-ring{width:235px!important;height:235px!important}
+}
