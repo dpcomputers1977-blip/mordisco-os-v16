@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#15120e">
   <title>Mordisco OS Admin V16</title>
   <link rel="icon" href="/icon-192.png">
-  <link rel="stylesheet" href="/styles.css?v=16.9.0">
+  <link rel="stylesheet" href="/styles.css?v=16.11.0">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -242,44 +242,124 @@
       </section>
 
       <section id="view-accounting" class="view hidden">
-        <div class="cards">
+        <div class="cards accounting-cards">
           <article><span>Ingresos del día</span><strong id="accountIncome">$0.00</strong></article>
           <article><span>Egresos del día</span><strong id="accountExpense">$0.00</strong></article>
           <article><span>Resultado</span><strong id="accountResult">$0.00</strong></article>
+          <article><span>Por cobrar</span><strong id="receivableTotal">$0.00</strong></article>
+          <article><span>Por pagar</span><strong id="payableTotal">$0.00</strong></article>
         </div>
 
-        <div class="grid-two">
-          <section class="panel">
-            <div class="panel-head">
-              <div><h3>Registrar egreso</h3><small>Compras, servicios, transporte y otros gastos.</small></div>
-            </div>
-            <form id="expenseForm" class="form-grid">
-              <input name="description" placeholder="Descripción del egreso" required>
-              <input name="amount" type="number" step=".01" min=".01" placeholder="Monto" required>
-              <select name="category">
-                <option value="Compras">Compras</option>
-                <option value="Servicios">Servicios</option>
-                <option value="Transporte">Transporte</option>
-                <option value="Nómina">Nómina</option>
-                <option value="Otros">Otros</option>
-              </select>
-              <button class="primary">Registrar egreso</button>
-            </form>
-          </section>
+        <div class="accounting-tabs">
+          <button class="active" data-account-tab="summary">Resumen</button>
+          <button data-account-tab="receivables">Cuentas por cobrar</button>
+          <button data-account-tab="payables">Cuentas por pagar</button>
+        </div>
 
-          <section class="panel">
-            <div class="panel-head">
-              <div><h3>Movimientos recientes</h3><small>Ventas cobradas y egresos registrados hoy.</small></div>
-              <button id="refreshAccounting">Actualizar</button>
-            </div>
-            <div id="accountingList"></div>
-            <hr>
-            <div class="panel-head">
-              <div><h3>Métodos de pago</h3><small>Activa o desactiva las opciones disponibles.</small></div>
-              <button id="addPaymentMethod">Agregar</button>
-            </div>
-            <div id="paymentMethodsList"></div>
-          </section>
+        <div id="account-tab-summary" class="account-tab-panel">
+          <div class="grid-two">
+            <section class="panel">
+              <div class="panel-head">
+                <div><h3>Registrar egreso</h3><small>Compras, servicios, transporte y otros gastos.</small></div>
+              </div>
+              <form id="expenseForm" class="form-grid">
+                <input name="description" placeholder="Descripción del egreso" required>
+                <input name="amount" type="number" step=".01" min=".01" placeholder="Monto" required>
+                <select name="category">
+                  <option value="Compras">Compras</option>
+                  <option value="Servicios">Servicios</option>
+                  <option value="Transporte">Transporte</option>
+                  <option value="Nómina">Nómina</option>
+                  <option value="Otros">Otros</option>
+                </select>
+                <button class="primary">Registrar egreso</button>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <div><h3>Movimientos recientes</h3><small>Ventas cobradas y egresos registrados hoy.</small></div>
+                <button id="refreshAccounting">Actualizar</button>
+              </div>
+              <div id="accountingList"></div>
+              <hr>
+              <div class="panel-head">
+                <div><h3>Métodos de pago</h3><small>Activa o desactiva las opciones disponibles.</small></div>
+                <button id="addPaymentMethod">Agregar</button>
+              </div>
+              <div id="paymentMethodsList"></div>
+            </section>
+          </div>
+        </div>
+
+        <div id="account-tab-receivables" class="account-tab-panel hidden">
+          <div class="grid-two accounting-management">
+            <section class="panel">
+              <div class="panel-head">
+                <div><h3>Nueva cuenta por cobrar</h3><small>Registra créditos y saldos pendientes de clientes.</small></div>
+              </div>
+              <form id="receivableForm" class="form-grid">
+                <input name="customer_name" placeholder="Cliente" required>
+                <input name="reference" placeholder="Factura o referencia">
+                <input name="description" placeholder="Concepto" required>
+                <input name="total_amount" type="number" step=".01" min=".01" placeholder="Valor total" required>
+                <input name="due_date" type="date">
+                <textarea name="notes" placeholder="Observaciones"></textarea>
+                <button class="primary">Guardar cuenta por cobrar</button>
+              </form>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <div><h3>Cuentas por cobrar</h3><small>Registra abonos y controla saldos pendientes.</small></div>
+                <button id="refreshReceivables">Actualizar</button>
+              </div>
+              <div class="account-filters">
+                <input id="receivableSearch" placeholder="Buscar cliente o referencia">
+                <select id="receivableStatusFilter">
+                  <option value="open">Pendientes</option>
+                  <option value="all">Todas</option>
+                  <option value="paid">Pagadas</option>
+                  <option value="overdue">Vencidas</option>
+                </select>
+              </div>
+              <div id="receivableList"></div>
+            </section>
+          </div>
+        </div>
+
+        <div id="account-tab-payables" class="account-tab-panel hidden">
+          <div class="grid-two accounting-management">
+            <section class="panel">
+              <div class="panel-head">
+                <div><h3>Nueva cuenta por pagar</h3><small>Registra proveedores, compras y obligaciones.</small></div>
+              </div>
+              <form id="payableForm" class="form-grid">
+                <input name="vendor_name" placeholder="Proveedor" required>
+                <input name="reference" placeholder="Factura o referencia">
+                <input name="description" placeholder="Concepto" required>
+                <input name="total_amount" type="number" step=".01" min=".01" placeholder="Valor total" required>
+                <input name="due_date" type="date">
+                <textarea name="notes" placeholder="Observaciones"></textarea>
+                <button class="primary">Guardar cuenta por pagar</button>
+              </form>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <div><h3>Cuentas por pagar</h3><small>Registra pagos parciales y controla vencimientos.</small></div>
+                <button id="refreshPayables">Actualizar</button>
+              </div>
+              <div class="account-filters">
+                <input id="payableSearch" placeholder="Buscar proveedor o referencia">
+                <select id="payableStatusFilter">
+                  <option value="open">Pendientes</option>
+                  <option value="all">Todas</option>
+                  <option value="paid">Pagadas</option>
+                  <option value="overdue">Vencidas</option>
+                </select>
+              </div>
+              <div id="payableList"></div>
+            </section>
+          </div>
         </div>
       </section>
 
@@ -343,6 +423,6 @@
     </div>
   </div>
 
-  <script src="/app.js?v=16.9.0"></script>
+  <script src="/app.js?v=16.11.0"></script>
 </body>
 </html>

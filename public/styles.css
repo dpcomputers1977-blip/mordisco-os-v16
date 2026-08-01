@@ -49,3 +49,27 @@
 .accounting-row strong.expense{color:#c33a2c}
 .empty-state,.error-state{padding:18px;border-radius:12px;background:#f8f3eb;color:#746a5e;text-align:center}
 .error-state{background:#fff0ed;color:#9d2f23}
+
+.accounting-cards{grid-template-columns:repeat(5,minmax(150px,1fr))}
+.accounting-tabs{display:flex;gap:8px;margin:18px 0;overflow:auto}
+.accounting-tabs button{border:1px solid #d8cbbb;background:#fff;padding:11px 17px;border-radius:999px;font-weight:800;white-space:nowrap}
+.accounting-tabs button.active{background:#181613;color:#ffc400;border-color:#181613}
+.accounting-management{align-items:start}
+.account-filters{display:grid;grid-template-columns:1fr 160px;gap:9px;margin-bottom:14px}
+.account-filters input,.account-filters select{padding:10px;border:1px solid #dacdbd;border-radius:9px;background:#fff}
+.account-item{border:1px solid #e3d7c8;border-radius:13px;padding:14px;margin-bottom:10px;background:#fff}
+.account-item-main{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.account-item-main small{display:block;color:#756b5f;margin-top:4px}
+.account-values{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:13px 0;padding:10px;background:#f7f2eb;border-radius:9px}
+.account-values span{font-size:.72rem;color:#766b5f;display:grid;gap:3px}
+.account-values b,.account-values strong{font-size:.9rem;color:#171512}
+.account-values strong{color:#a36d00}
+.account-actions{display:flex;justify-content:flex-end;gap:7px}
+.account-actions button{padding:8px 11px}
+.danger-soft{background:#fff0ed!important;color:#a73729!important;border-color:#ecc8c2!important}
+.account-pending{background:#fff0bf;color:#765500}
+.account-partial{background:#dceeff;color:#155b8b}
+.account-paid{background:#d9f4df;color:#176b35}
+.account-overdue{background:#ffe0dc;color:#a72d20}
+@media(max-width:1200px){.accounting-cards{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.accounting-cards{grid-template-columns:1fr 1fr}.account-values{grid-template-columns:1fr 1fr}.account-filters{grid-template-columns:1fr}}

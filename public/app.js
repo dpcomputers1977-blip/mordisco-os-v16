@@ -467,14 +467,20 @@ async function loadAccounting(){
   try{
     if(!paymentMethods.length) await loadPaymentMethods();
     const start=todayISO()+"T00:00:00";
-    const [salesResult,expensesResult,closesResult]=await Promise.all([
+    const [salesResult,expensesResult,closesResult,receivablesResult,payablesResult]=await Promise.all([
       db.from("v16_orders").select("total,paid_at,order_number,payment_method").eq("payment_status","paid").gte("paid_at",start).order("paid_at",{ascending:false}),
       db.from("v16_expenses").select("*").gte("created_at",start).order("created_at",{ascending:false}),
-      db.from("v16_cash_closes").select("*").order("created_at",{ascending:false}).limit(10)
+      db.from("v16_cash_closes").select("*").order("created_at",{ascending:false}).limit(10),
+      db.from("v16_receivables").select("*").order("created_at",{ascending:false}),
+      db.from("v16_payables").select("*").order("created_at",{ascending:false})
     ]);
     if(salesResult.error) throw salesResult.error;
     if(expensesResult.error) throw expensesResult.error;
+    if(receivablesResult.error) throw receivablesResult.error;
+    if(payablesResult.error) throw payablesResult.error;
 
+    receivables=receivablesResult.data||[];
+    payables=payablesResult.data||[];
     const sales=salesResult.data||[],expenses=expensesResult.data||[];
     const income=sales.reduce((sum,row)=>sum+Number(row.total||0),0);
     const expense=expenses.reduce((sum,row)=>sum+Number(row.amount||0),0);
@@ -482,6 +488,10 @@ async function loadAccounting(){
     $("#accountIncome").textContent=money(income);
     $("#accountExpense").textContent=money(expense);
     $("#accountResult").textContent=money(income-expense);
+    $("#receivableTotal").textContent=money(receivables.reduce((sum,row)=>sum+Number(row.balance||0),0));
+    $("#payableTotal").textContent=money(payables.reduce((sum,row)=>sum+Number(row.balance||0),0));
+    renderReceivables();
+    renderPayables();
 
     const movements=[
       ...sales.map(row=>({date:row.paid_at,label:`Venta #${row.order_number} · ${paymentMethods.find(m=>m.code===row.payment_method)?.name||row.payment_method||"Sin método"}`,amount:Number(row.total||0),type:"income"})),
@@ -505,6 +515,136 @@ async function loadAccounting(){
     setSyncStatus("Error de sincronización",false);
   }
 }
+
+function accountStatus(row){
+  if(Number(row.balance||0)<=0)return "paid";
+  if(row.due_date&&new Date(row.due_date+"T23:59:59")<new Date())return "overdue";
+  if(Number(row.amount_paid||0)>0)return "partial";
+  return "pending";
+}
+function accountStatusLabel(status){
+  return ({paid:"Pagado",overdue:"Vencido",partial:"Parcial",pending:"Pendiente"})[status]||status;
+}
+function accountMatchesFilter(row,search,filter,nameField){
+  const text=`${row[nameField]||""} ${row.reference||""} ${row.description||""}`.toLowerCase();
+  const status=accountStatus(row);
+  if(search&&!text.includes(search.toLowerCase()))return false;
+  if(filter==="all")return true;
+  if(filter==="open")return status!=="paid";
+  return status===filter;
+}
+function renderReceivables(){
+  const container=$("#receivableList");
+  if(!container)return;
+  const search=$("#receivableSearch")?.value||"";
+  const filter=$("#receivableStatusFilter")?.value||"open";
+  const rows=receivables.filter(row=>accountMatchesFilter(row,search,filter,"customer_name"));
+  container.innerHTML=rows.map(row=>{
+    const status=accountStatus(row);
+    return `<article class="account-item">
+      <div class="account-item-main">
+        <div><b>${esc(row.customer_name)}</b><small>${esc(row.description)}${row.reference?` · ${esc(row.reference)}`:""}</small></div>
+        <span class="badge account-${status}">${accountStatusLabel(status)}</span>
+      </div>
+      <div class="account-values">
+        <span>Total <b>${money(row.total_amount)}</b></span>
+        <span>Abonado <b>${money(row.amount_paid)}</b></span>
+        <span>Saldo <strong>${money(row.balance)}</strong></span>
+        <span>Vence <b>${row.due_date?new Date(row.due_date+"T12:00:00").toLocaleDateString("es-EC"):"Sin fecha"}</b></span>
+      </div>
+      <div class="account-actions">
+        ${Number(row.balance)>0?`<button data-receivable-pay="${row.id}">Registrar abono</button>`:""}
+        <button class="danger-soft" data-receivable-delete="${row.id}">Eliminar</button>
+      </div>
+    </article>`;
+  }).join("")||'<div class="empty-state">No hay cuentas por cobrar en este filtro.</div>';
+
+  container.querySelectorAll("[data-receivable-pay]").forEach(button=>button.onclick=()=>registerAccountPayment("receivable",button.dataset.receivablePay));
+  container.querySelectorAll("[data-receivable-delete]").forEach(button=>button.onclick=()=>deleteAccount("receivable",button.dataset.receivableDelete));
+}
+function renderPayables(){
+  const container=$("#payableList");
+  if(!container)return;
+  const search=$("#payableSearch")?.value||"";
+  const filter=$("#payableStatusFilter")?.value||"open";
+  const rows=payables.filter(row=>accountMatchesFilter(row,search,filter,"vendor_name"));
+  container.innerHTML=rows.map(row=>{
+    const status=accountStatus(row);
+    return `<article class="account-item">
+      <div class="account-item-main">
+        <div><b>${esc(row.vendor_name)}</b><small>${esc(row.description)}${row.reference?` · ${esc(row.reference)}`:""}</small></div>
+        <span class="badge account-${status}">${accountStatusLabel(status)}</span>
+      </div>
+      <div class="account-values">
+        <span>Total <b>${money(row.total_amount)}</b></span>
+        <span>Pagado <b>${money(row.amount_paid)}</b></span>
+        <span>Saldo <strong>${money(row.balance)}</strong></span>
+        <span>Vence <b>${row.due_date?new Date(row.due_date+"T12:00:00").toLocaleDateString("es-EC"):"Sin fecha"}</b></span>
+      </div>
+      <div class="account-actions">
+        ${Number(row.balance)>0?`<button data-payable-pay="${row.id}">Registrar pago</button>`:""}
+        <button class="danger-soft" data-payable-delete="${row.id}">Eliminar</button>
+      </div>
+    </article>`;
+  }).join("")||'<div class="empty-state">No hay cuentas por pagar en este filtro.</div>';
+
+  container.querySelectorAll("[data-payable-pay]").forEach(button=>button.onclick=()=>registerAccountPayment("payable",button.dataset.payablePay));
+  container.querySelectorAll("[data-payable-delete]").forEach(button=>button.onclick=()=>deleteAccount("payable",button.dataset.payableDelete));
+}
+async function registerAccountPayment(type,id){
+  const collection=type==="receivable"?receivables:payables;
+  const row=collection.find(item=>item.id===id);
+  if(!row)return;
+  const label=type==="receivable"?"abono recibido":"pago realizado";
+  const raw=prompt(`Valor del ${label}. Saldo actual: ${money(row.balance)}`);
+  if(raw===null)return;
+  const amount=Number(String(raw).replace(",","."));
+  if(!Number.isFinite(amount)||amount<=0)return toast("Ingresa un valor válido");
+  if(amount>Number(row.balance)+0.001)return toast("El valor no puede superar el saldo pendiente");
+  const method=prompt("Método de pago (efectivo, transferencia, tarjeta, De Una, Ahorita):","efectivo")||"efectivo";
+  const notes=prompt("Observación opcional:","")||"";
+  const fn=type==="receivable"?"v16_add_receivable_payment":"v16_add_payable_payment";
+  const args=type==="receivable"
+    ?{p_receivable_id:id,p_amount:amount,p_method:method,p_notes:notes,p_staff_id:sessionStaff.id,p_pin:sessionPin}
+    :{p_payable_id:id,p_amount:amount,p_method:method,p_notes:notes,p_staff_id:sessionStaff.id,p_pin:sessionPin};
+  const {error}=await db.rpc(fn,args);
+  if(error)return toast(error.message);
+  toast(type==="receivable"?"Abono registrado":"Pago registrado");
+  await loadAccounting();
+}
+async function deleteAccount(type,id){
+  if(!confirm("¿Eliminar este registro? Esta acción también elimina su historial de pagos."))return;
+  const table=type==="receivable"?"v16_receivables":"v16_payables";
+  const {error}=await db.from(table).delete().eq("id",id);
+  if(error)return toast(error.message);
+  toast("Registro eliminado");
+  await loadAccounting();
+}
+async function createReceivable(event){
+  event.preventDefault();
+  const form=event.target;
+  const data=Object.fromEntries(new FormData(form));
+  data.total_amount=Number(data.total_amount);
+  data.created_by=sessionStaff.id;
+  if(!data.due_date)data.due_date=null;
+  if(!Number.isFinite(data.total_amount)||data.total_amount<=0)return toast("Ingresa un valor válido");
+  const {error}=await db.from("v16_receivables").insert(data);
+  if(error)return toast(error.message);
+  form.reset();toast("Cuenta por cobrar creada");await loadAccounting();
+}
+async function createPayable(event){
+  event.preventDefault();
+  const form=event.target;
+  const data=Object.fromEntries(new FormData(form));
+  data.total_amount=Number(data.total_amount);
+  data.created_by=sessionStaff.id;
+  if(!data.due_date)data.due_date=null;
+  if(!Number.isFinite(data.total_amount)||data.total_amount<=0)return toast("Ingresa un valor válido");
+  const {error}=await db.from("v16_payables").insert(data);
+  if(error)return toast(error.message);
+  form.reset();toast("Cuenta por pagar creada");await loadAccounting();
+}
+
 async function loadPaymentMethodsAdmin(){
   const {data,error}=await db.from("v16_payment_methods").select("*").order("sort_order");
   if(error)return toast(error.message);
@@ -564,6 +704,21 @@ bindEvent("#closeCashClose","click",()=>$("#cashCloseModal")?.classList.add("hid
 bindEvent("#cashCounted","input",updateCashDifference);
 bindEvent("#saveCashClose","click",saveCashClose);
 bindEvent("#printCashClose","click",printCashClose);
+
+$$("#view-accounting [data-account-tab]").forEach(button=>button.onclick=()=>{
+  $$("#view-accounting [data-account-tab]").forEach(item=>item.classList.remove("active"));
+  $$("#view-accounting .account-tab-panel").forEach(panel=>panel.classList.add("hidden"));
+  button.classList.add("active");
+  $(`#account-tab-${button.dataset.accountTab}`).classList.remove("hidden");
+});
+bindEvent("#receivableForm","submit",createReceivable);
+bindEvent("#payableForm","submit",createPayable);
+bindEvent("#refreshReceivables","click",loadAccounting);
+bindEvent("#refreshPayables","click",loadAccounting);
+bindEvent("#receivableSearch","input",renderReceivables);
+bindEvent("#receivableStatusFilter","change",renderReceivables);
+bindEvent("#payableSearch","input",renderPayables);
+bindEvent("#payableStatusFilter","change",renderPayables);
 bindEvent("#addPaymentMethod","click",async()=>{
   const name=prompt("Nombre del método de pago:");
   if(!name)return;
@@ -581,6 +736,8 @@ function startRealtime(){
     .on("postgres_changes",{event:"*",schema:"public",table:"v16_orders"},()=>refreshActiveView())
     .on("postgres_changes",{event:"*",schema:"public",table:"v16_order_items"},()=>refreshActiveView())
     .on("postgres_changes",{event:"*",schema:"public",table:"v16_expenses"},()=>refreshActiveView())
+    .on("postgres_changes",{event:"*",schema:"public",table:"v16_receivables"},()=>refreshActiveView())
+    .on("postgres_changes",{event:"*",schema:"public",table:"v16_payables"},()=>refreshActiveView())
     .subscribe(status=>{
       if(status==="SUBSCRIBED")setSyncStatus("En tiempo real");
     });
