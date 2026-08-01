@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/website.css?v=17.0.0">
+  <link rel="stylesheet" href="/website.css?v=17.1.0">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -31,7 +31,7 @@
     </nav>
 
     <div class="header-actions">
-      <a class="admin-link" href="/admin.html">Personal</a>
+      
       <a class="order-button" href="/online.html">Pedir ahora <span>→</span></a>
     </div>
 
@@ -137,10 +137,19 @@
   <footer>
     <div class="footer-brand"><img src="/logo.png"><div><b>MORDISCO</b><span>FAST FOOD</span></div></div>
     <p>Hamburguesas, sándwiches y mucho sabor.</p>
-    <div class="footer-links"><a href="/online.html">Pedir</a><a href="/admin.html">Personal</a><a href="#menu">Menú</a></div>
+    <div class="footer-links"><a href="/online.html">Pedir</a><a href="#menu">Menú</a></div>
     <small>© 2026 Mordisco Fast Food. Todos los derechos reservados.</small>
   </footer>
 
-  <script src="/website.js?v=17.0.0"></script>
+
+  <nav class="mobile-client-nav" aria-label="Navegación móvil">
+    <a href="#inicio"><span>⌂</span><b>Inicio</b></a>
+    <a href="#menu"><span>🍔</span><b>Menú</b></a>
+    <a class="mobile-order-main" href="/online.html"><span>🛒</span><b>Pedir</b></a>
+    <a href="#promos"><span>🔥</span><b>Promos</b></a>
+    <a href="#contacto"><span>☎</span><b>Contacto</b></a>
+  </nav>
+
+  <script src="/website.js?v=17.1.0"></script>
 </body>
 </html>
