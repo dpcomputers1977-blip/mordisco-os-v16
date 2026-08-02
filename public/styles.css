@@ -1098,3 +1098,10 @@ body.employeeMode .deleteSaleBtn{
   opacity:.65;
   cursor:wait;
 }
+
+/* V16 — BASE ESTABLE */
+#loginForm button:disabled,
+button:disabled{
+  opacity:.65;
+  cursor:wait;
+}

@@ -1,12 +1,103 @@
+window.addEventListener('error',event=>{
+  console.error('Error global Mordisco OS:',event.error||event.message);
+  const node=document.querySelector('#toast');
+  if(node){
+    node.textContent='Ocurrió un error: '+(event.error?.message||event.message||'Error desconocido');
+    node.classList.add('show');
+    setTimeout(()=>node.classList.remove('show'),5000);
+  }
+});
 
 const SUPABASE_URL='https://nmmjthqflxwucpmmmrks.supabase.co';
 const SUPABASE_KEY='sb_publishable_izCztp4wZ0MzKOHjT2KGYA_ot_3pgb0';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let products=[],categories=[],settings={},orders=[],cart=[],posCart=[],ingredients=[],inventoryMovements=[],recipes=[],staffMembers=[],tables=[],tableCart=[],currentTable=null,currentEmployee=null,currentShift=null,shifts=[],financeMovements=[],customers=[],promotions=[],contentPages=[],isAdminSession=false,shiftAction='start',selectedCategory='Todos',editingImage='',adminProductQuery='',adminProductFilter='all',orderStatusFilter='all',ordersChannel=null,lastKnownOrderIds=new Set(),kitchenTimerHandle=null,lastReceiptOrder=null;
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const $$=s=>[...document.querySelectorAll(s)];
+const missingElementProxy=new Proxy({},{
+  get(_target,property){
+    if(property==='classList')return{add(){},remove(){},toggle(){},contains(){return false}};
+    if(property==='style')return{};
+    if(property==='selectedOptions')return[];
+    if(property==='files')return[];
+    if(property==='dataset')return{};
+    if(property==='value')return'';
+    if(property==='checked')return false;
+    if(property==='textContent'||property==='innerHTML'||property==='src')return'';
+    if(['focus','select','reset','scrollIntoView','addEventListener','click'].includes(property))return()=>{};
+    return null;
+  },
+  set(){return true}
+});
+const $=s=>document.querySelector(s)||missingElementProxy;
 const money=n=>new Intl.NumberFormat('es-EC',{style:'currency',currency:'USD'}).format(Number(n||0));
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600)}
 function esc(s=''){return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+
+function showAdmin(){
+  $('#publicView').classList.add('hidden');
+  $('#adminView').classList.remove('hidden');
+  $('.topbar').classList.add('hidden');
+  $('#loginModal').classList.add('hidden');
+
+  const firstButton=$('.sidebar [data-tab="dashboard"]');
+  if(firstButton&&typeof firstButton.click==='function')firstButton.click();
+}
+
+async function verifyAdmin(showWelcome=true){
+  const {data:{session},error:sessionError}=await db.auth.getSession();
+  if(sessionError)throw sessionError;
+
+  if(!session){
+    isAdminSession=false;
+    $('#adminView').classList.add('hidden');
+    $('#loginModal').classList.remove('hidden');
+    return false;
+  }
+
+  let role='admin';
+  const {data:profile,error:profileError}=await db
+    .from('profiles')
+    .select('role')
+    .eq('id',session.user.id)
+    .maybeSingle();
+
+  if(profileError){
+    console.warn('No se pudo comprobar el perfil; se conserva la sesión autenticada:',profileError);
+  }else if(profile?.role){
+    role=profile.role;
+  }
+
+  if(role!=='admin'){
+    await db.auth.signOut();
+    isAdminSession=false;
+    $('#adminView').classList.add('hidden');
+    $('#loginModal').classList.remove('hidden');
+    toast('Esta cuenta no tiene permisos de administrador');
+    return false;
+  }
+
+  isAdminSession=true;
+  currentEmployee=null;
+  document.body.classList.remove('employeeMode');
+  showAdmin();
+
+  await Promise.allSettled([
+    loadOrders(),
+    loadInventoryData(),
+    loadStaff(),
+    loadTables(),
+    loadShifts(),
+    loadFinance(),
+    loadCustomers(),
+    loadPromotions(),
+    loadContentPages()
+  ]);
+
+  renderAll();
+  if(showWelcome)toast('Bienvenido al panel de administración');
+  return true;
+}
+
 async function init(){
   const params=new URLSearchParams(location.search);
   const employeeMode=params.get('employee')==='1';
@@ -1372,6 +1463,38 @@ async function deletePage(id){if(!confirm('¿Eliminar página?'))return;const {e
 if($('#pageTitle'))$('#pageTitle').oninput=()=>{if(!$('#pageId').value)$('#pageSlug').value=slugify($('#pageTitle').value)};
 if($('#pageForm'))$('#pageForm').onsubmit=async e=>{e.preventDefault();const id=$('#pageId').value;const row={title:$('#pageTitle').value.trim(),slug:slugify($('#pageSlug').value),summary:$('#pageSummary').value.trim(),hero_image:$('#pageHeroImage').value.trim(),content:$('#pageContent').value.trim(),button_text:$('#pageButtonText').value.trim(),button_link:$('#pageButtonLink').value.trim(),sort_order:Number($('#pageSort').value||0),show_in_menu:$('#pageShowMenu').checked,published:$('#pagePublished').checked};const q=id?db.from('content_pages').update(row).eq('id',id):db.from('content_pages').insert(row);const {error}=await q;if(error)return toast(error.message);toast('Página guardada');resetPage();await loadContentPages()};
 if($('#clearPage'))$('#clearPage').onclick=resetPage;
+
+
+if($('#loginForm')){
+  $('#loginForm').onsubmit=async event=>{
+    event.preventDefault();
+
+    const email=$('#loginEmail').value.trim();
+    const password=$('#loginPassword').value;
+    const button=$('#loginForm button[type="submit"], #loginForm button');
+
+    if(!email||!password){
+      return toast('Escribe el correo y la contraseña');
+    }
+
+    button.disabled=true;
+    button.textContent='Ingresando...';
+
+    try{
+      const {error}=await db.auth.signInWithPassword({email,password});
+      if(error)throw error;
+
+      const authorized=await verifyAdmin(true);
+      if(!authorized)throw new Error('Acceso administrativo no autorizado');
+    }catch(error){
+      console.error('Error iniciando sesión:',error);
+      toast('No se pudo iniciar sesión: '+(error.message||'Error desconocido'));
+    }finally{
+      button.disabled=false;
+      button.textContent='Ingresar';
+    }
+  };
+}
 
 init();
 

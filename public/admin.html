@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#11100e">
 <title>Mordisco Fast Food</title>
-<link rel="stylesheet" href="styles.css?v=15.3.0">
+<link rel="stylesheet" href="styles.css?v=16.0.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -591,7 +591,7 @@
  </div>
 </section>
 
-<div id="loginModal" class="modal adminLoginVisible"><div class="modalCard loginCard"><button class="close" data-close="loginModal">×</button><img src="media/logo.png" alt="Mordisco"><span class="eyebrow">MORDISCO OS</span><h2>Acceso de administrador</h2><p>Ingresa con tu correo y contraseña de administración.</p><form id="loginForm"><input id="loginEmail" type="email" placeholder="Correo" required><input id="loginPassword" type="password" placeholder="Contraseña" required><button class="primary">Ingresar</button></form><small id="loginMessage"></small></div></div>
+<div id="loginModal" class="modal adminLoginVisible"><div class="modalCard loginCard"><button class="close" data-close="loginModal">×</button><img src="media/logo.png" alt="Mordisco"><span class="eyebrow">MORDISCO OS</span><h2>Acceso de administrador</h2><p>Ingresa con tu correo y contraseña de administración.</p><form id="loginForm" autocomplete="off"><input id="loginEmail" name="mordisco_admin_email" type="email" placeholder="Correo" autocomplete="username" required><input id="loginPassword" name="mordisco_admin_password" type="password" placeholder="Contraseña" autocomplete="current-password" required><button class="primary">Ingresar</button></form><small id="loginMessage"></small></div></div>
 
 <div id="cartDrawer" class="drawer"><div class="drawerHead"><h2>Tu pedido</h2><button id="closeCart">×</button></div><div id="cartItems"></div><div class="totals"><p><span>Subtotal</span><b id="subtotal">$0.00</b></p><p><span>Delivery</span><b id="deliveryTotal">$0.00</b></p><p class="grand"><span>Total</span><b id="grandTotal">$0.00</b></p></div><form id="orderForm"><input id="customerName" placeholder="Nombre" required><input id="customerPhone" placeholder="Teléfono" required><select id="orderType"><option value="delivery">Delivery</option><option value="pickup">Retiro</option><option value="local">En el local</option></select><input id="customerAddress" placeholder="Dirección de entrega"><select id="paymentMethod"><option value="cash">Efectivo</option><option value="transfer">Transferencia</option><option value="card">Tarjeta</option></select><textarea id="orderNotes" placeholder="Notas del pedido"></textarea><button class="primary">Confirmar pedido</button></form></div>
 
@@ -705,5 +705,5 @@
   </div>
 </div>
 <div id="toast" class="toast"></div>
-<script src="app.js?v=15.3.0"></script>
+<script src="app.js?v=16.0.0"></script>
 </body></html>
