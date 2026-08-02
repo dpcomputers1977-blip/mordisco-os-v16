@@ -1,429 +1,660 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="robots" content="noindex,nofollow">
-  <meta name="theme-color" content="#15120e">
-  <title>Mordisco OS Admin V16</title>
-  <link rel="icon" href="/icon-192.png">
-  <link rel="stylesheet" href="/styles.css?v=16.11.0">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#11100e">
+<title>Mordisco Fast Food</title>
+<link rel="stylesheet" href="styles.css?v=15.2.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <div id="toast"></div>
+<header class="topbar hidden">
+  <a class="brand" href="#inicio"><img src="media/logo.png" alt="Mordisco"><span>MORDISCO</span></a>
+  <nav><a href="#inicio">Inicio</a><a href="#menu">Menú</a><a href="/promociones">Promociones</a><a href="#contacto">Contacto</a></nav>
+  <div class="top-actions"><button class="cartBtn" id="cartBtn">🛒 <b id="cartCount">0</b></button></div>
+<a class="clientAppLink" href="/app">📱 Pedir desde la app</a></header>
 
-  <main id="loginView" class="login-shell">
-    <section class="login-card">
-      <img src="/logo.png" alt="Mordisco Fast Food" class="login-logo">
-      <span class="eyebrow">MORDISCO OS V16</span>
-      <h1>Acceso de empleados</h1>
-      <p>Selecciona tu usuario e ingresa tu PIN.</p>
-      <label>Empleado
-        <select id="loginStaff"><option>Cargando empleados…</option></select>
-      </label>
-      <label>PIN
-        <input id="loginPin" type="password" inputmode="numeric" maxlength="6" placeholder="••••">
-      </label>
-      <button id="loginButton" class="primary">Ingresar</button>
-      <small>Primer acceso: Administrador · PIN 1234</small>
-    </section>
-  </main>
-
-  <div id="appView" class="app hidden">
-    <aside class="sidebar">
-      <div class="brand">
-        <img src="/logo.png" alt="">
-        <div><b>Mordisco OS</b><small>Versión 16</small></div>
-      </div>
-      <nav id="mainNav">
-        <button data-view="dashboard" data-roles="admin">📊 Dashboard</button>
-        <button data-view="pos" data-roles="admin,cashier">💵 Caja / POS</button>
-<button data-view="online" data-roles="admin">🌐 Pedidos web</button>
-        <button data-view="commands" data-roles="admin,waiter">🍽️ Comandas</button>
-        <button data-view="kitchen" data-roles="admin,kitchen">👨‍🍳 Cocina</button>
-        <button data-view="products" data-roles="admin">🍔 Productos</button>
-        <button data-view="inventory" data-roles="admin">📦 Inventario</button>
-        <button data-view="customers" data-roles="admin">👥 Clientes</button>
-        <button data-view="staff" data-roles="admin">👨‍💼 Empleados</button>
-        <button data-view="accounting" data-roles="admin">💰 Contabilidad</button>
-      </nav>
-      <div class="sidebar-user">
-        <b id="currentUserName"></b>
-        <span id="currentUserRole"></span><small id="roleAccessInfo" class="role-access-info"></small>
-        <a class="public-site-link" href="/" target="_blank" rel="noopener">🌐 Abrir página pública</a>
-        <button id="logoutButton">Cerrar sesión</button>
-      </div>
-    </aside>
-
-    <section class="workspace">
-      <header class="topbar">
-        <button id="menuButton" class="menu-button">☰</button>
-        <div>
-          <span class="eyebrow">MORDISCO FAST FOOD</span>
-          <h2 id="pageTitle">Dashboard</h2>
-        </div>
-        <div class="live-status"><span></span><b id="syncStatus">Sincronizado</b></div>
-        <div class="clock" id="clock"></div>
-      </header>
-
-      <section id="view-dashboard" class="view">
-        <div class="cards">
-          <article><span>Ventas de hoy</span><strong id="metricSales">$0.00</strong></article>
-          <article><span>Órdenes cobradas</span><strong id="metricPaid">0</strong></article>
-          <article><span>En cocina</span><strong id="metricKitchen">0</strong></article>
-          <article><span>Stock bajo</span><strong id="metricStock">0</strong></article>
-        </div>
-        <div class="grid-two">
-          <section class="panel"><div class="panel-head"><h3>Actividad reciente</h3><button onclick="loadDashboard()">Actualizar</button></div><div id="recentOrders"></div></section>
-          <section class="panel">
-            <div class="panel-head"><h3>Resumen operativo</h3></div>
-            <div id="operationsSummary" class="summary-list"></div>
-            <hr>
-            <h3>Ventas por forma de pago</h3>
-            <div id="paymentSummary" class="summary-list"></div>
-          </section>
-        </div>
-      </section>
-
-      <section id="view-pos" class="view hidden">
-        <div class="pos-layout">
-          <section class="panel">
-            <div class="panel-head"><h3>Productos</h3><input id="posSearch" placeholder="Buscar producto"></div>
-            <div id="posCategories" class="chips"></div>
-            <div id="posProducts" class="product-grid"></div>
-          </section>
-          <aside class="panel cart-panel">
-            <div class="panel-head"><h3>Cuenta de Caja</h3><button id="openCashClose">Cierre de caja</button></div>
-            <label>Cliente <select id="posCustomer"><option value="">Consumidor final</option></select></label>
-            <label>Tipo
-              <select id="posOrderType"><option value="local">Local</option><option value="takeaway">Para llevar</option></select>
-            </label>
-            <div id="posCart" class="cart-lines"></div>
-            <div class="total-row"><span>Total</span><strong id="posTotal">$0.00</strong></div>
-            <button id="sendPosKitchen">Enviar a Cocina y cobrar después</button>
-            <button id="chargePos" class="primary">Cobrar ahora</button>
-            <hr>
-            <h4>Órdenes pendientes de cobro</h4>
-            <div id="pendingPayments"></div>
-            <hr>
-            <h4>Resumen de hoy</h4>
-            <div id="posPaymentSummary" class="summary-list"></div>
-            <div class="pos-day-total"><span>Total vendido</span><strong id="posDayTotal">$0.00</strong></div>
-          </aside>
-        </div>
-      </section>
-
-      <section id="view-online" class="view hidden">
-<div class="panel"><div class="panel-head"><div><h3>Pedidos recibidos desde la web</h3><small>Confirma antes de enviar a Cocina.</small></div><button id="refreshOnlineOrders">Actualizar</button></div><div id="onlineOrdersList" class="online-orders-list"></div></div>
+<main id="publicView" class="hidden">
+<section class="hero" id="inicio">
+ <video autoplay muted loop playsinline poster="media/hamburguesa.png"><source src="media/promo.mp4" type="video/mp4"></video>
+ <div class="overlay"></div>
+ <div class="heroCopy"><span class="kicker">🔥 SABOR SIN DISCUSIÓN</span><h1>DALE UN <em>MORDISCO</em> A LO BRUTAL.</h1><p id="businessDescription">El mejor sabor para compartir.</p><a class="primary" href="#menu">Ver menú</a></div>
+ <img class="heroBurger" src="media/hamburguesa.png" alt="Hamburguesa">
 </section>
-<section id="view-commands" class="view hidden">
-        <div class="grid-two commands-grid">
-          <section class="panel">
-            <div class="panel-head"><h3>Mesas</h3><button id="refreshTables">Actualizar</button></div>
-            <div id="tablesGrid" class="tables-grid"></div>
-          </section>
-          <section class="panel">
-            <h3 id="commandTitle">Selecciona una mesa</h3>
-            <div id="commandBuilder" class="hidden">
-              <div class="chips" id="commandCategories"></div>
-              <input id="commandSearch" placeholder="Buscar producto">
-              <div id="commandProducts" class="product-grid compact"></div>
-              <div id="commandCart" class="cart-lines"></div>
-              <div class="total-row"><span>Total</span><strong id="commandTotal">$0.00</strong></div>
-              <textarea id="commandNotes" placeholder="Notas para Cocina"></textarea>
-              <button id="sendCommand" class="primary">Enviar comanda a Cocina</button>
-              <p class="notice">Comandas no cobra. El pago se realiza exclusivamente en Caja.</p>
-            </div>
-          </section>
-        </div>
-      </section>
 
-      <section id="view-kitchen" class="view hidden">
-        <div class="panel">
-          <div class="panel-head"><h3>Monitor de Cocina</h3><button id="refreshKitchen">Actualizar</button></div>
-          <div id="kitchenBoard" class="kitchen-board"></div>
-        </div>
-      </section>
+<section class="benefits"><article>🚚 <b>Delivery</b><span>Directo a tu puerta</span></article><article>🏪 <b>Retiro</b><span>Pide y pasa por él</span></article><article>🍽️ <b>En el local</b><span>Disfrútalo recién hecho</span></article></section>
 
-      <section id="view-products" class="view hidden">
-        <div class="grid-two">
-          <section class="panel">
-            <h3>Nuevo producto</h3>
-            <form id="productForm" class="form-grid">
-              <input name="name" placeholder="Nombre" required>
-              <input name="price" type="number" min="0" step=".01" placeholder="Precio" required>
-              <select name="category_id" id="productCategory"></select>
-              <input name="image_url" placeholder="URL de imagen">
-              <textarea name="description" placeholder="Descripción"></textarea>
-              <button class="primary">Guardar producto</button>
-            </form>
-          </section>
-          <section class="panel"><div class="panel-head"><h3>Productos activos</h3><button onclick="loadProductsAdmin()">Actualizar</button></div><div id="productsAdmin"></div></section>
-        </div>
-      </section>
+<section class="promoHomeSection">
+ <div class="sectionHead"><div><span class="eyebrow">OFERTAS ESPECIALES</span><h2>Promociones para disfrutar</h2></div><a class="dark publicLinkButton" href="/promociones">Ver todas</a></div>
+ <div id="homePromotions" class="promotionGrid"></div>
+</section>
+<section class="menuSection" id="menu">
+ <div class="sectionHead"><div><span class="eyebrow">NUESTRO MENÚ</span><h2>Elige tu próximo mordisco</h2></div><input id="searchInput" placeholder="Buscar producto..."></div>
+ <div class="categories" id="categoryFilters"></div>
+ <div id="loadingProducts" class="notice">Cargando menú desde la nube…</div>
+ <div class="productGrid" id="productGrid"></div>
+</section>
 
-      <section id="view-inventory" class="view hidden">
-        <div class="grid-two">
-          <section class="panel">
-            <h3>Registrar ingrediente</h3>
-            <form id="inventoryForm" class="form-grid">
-              <input name="name" placeholder="Ingrediente" required>
-              <input name="unit" placeholder="Unidad (kg, und, litro)" required>
-              <input name="stock" type="number" step=".01" placeholder="Stock actual" required>
-              <input name="minimum_stock" type="number" step=".01" placeholder="Stock mínimo" required>
-              <input name="cost" type="number" step=".01" placeholder="Costo unitario">
-              <button class="primary">Guardar</button>
-            </form>
-          </section>
-          <section class="panel"><div class="panel-head"><h3>Existencias</h3><button onclick="loadInventory()">Actualizar</button></div><div id="inventoryList"></div></section>
-        </div>
-      </section>
+<section class="contact" id="contacto"><div><span class="eyebrow">PIDE DIRECTO</span><h2>Tu próximo mordisco está cerca.</h2><p>📍 <span id="businessAddress">Dirección por configurar</span></p><p>🕒 <span id="businessSchedule">Horario por configurar</span></p></div><button class="primary" id="orderNowBtn">Hacer pedido</button></section>
+<footer class="publicFooter">
+  <span>© Mordisco Fast Food</span>
+  <div class="privateAccess">
+    <a href="/staff" title="Portal del personal">Personal</a>
+    <button id="adminBtn" title="Administración">•</button>
+  </div>
+</footer>
+</main>
 
-      <section id="view-customers" class="view hidden">
-        <div class="grid-two">
-          <section class="panel">
-            <h3>Nuevo cliente</h3>
-            <form id="customerForm" class="form-grid">
-              <input name="name" placeholder="Nombre" required>
-              <input name="phone" placeholder="Teléfono">
-              <input name="email" type="email" placeholder="Correo">
-              <textarea name="notes" placeholder="Notas"></textarea>
-              <button class="primary">Guardar cliente</button>
-            </form>
-          </section>
-          <section class="panel"><div class="panel-head"><h3>Clientes</h3><button onclick="loadCustomers()">Actualizar</button></div><div id="customersList"></div></section>
+<section id="adminView" class="hidden adminShell">
+ <aside class="sidebar"><img src="media/logo.png" alt="Mordisco"><button data-tab="dashboard"><span>▦</span> Resumen</button><button data-tab="products" class="active"><span>🍔</span> Productos</button><button data-tab="categories"><span>▤</span> Categorías</button><button data-tab="kitchen"><span>♨</span> Cocina</button><button data-tab="pos"><span>▣</span> POS / Caja</button><button data-tab="inventory"><span>◇</span> Inventario</button><button data-tab="tables"><span>🍽</span> Mesas</button><button data-tab="shifts"><span>🕒</span> Turnos</button><button data-tab="finance"><span>💰</span> Contabilidad</button><button data-tab="customers"><span>👤</span> Clientes</button><button data-tab="promotions"><span>🎁</span> Promociones</button><button data-tab="pages"><span>📄</span> Páginas</button><button data-tab="staff"><span>👥</span> Personal</button><button data-tab="settings"><span>⚙</span> Negocio</button><button id="logoutBtn"><span>↪</span> Cerrar sesión</button><button id="backToStore"><span>↗</span> Ver página</button></aside>
+ <div class="adminContent">
+   <div class="adminTop"><div><span class="eyebrow">MORDISCO OS CLOUD</span><h1 id="adminTitle">Productos</h1></div><span class="cloudStatus">● Conectado a Supabase</span></div>
+   <section id="tab-dashboard" class="tab hidden">
+      <div class="metrics">
+        <article><span>Órdenes totales</span><b id="metricOrders">0</b></article>
+        <article><span>Ventas acumuladas</span><b id="metricSales">$0.00</b></article>
+        <article><span>Ventas de hoy</span><b id="metricToday">$0.00</b></article>
+        <article><span>Órdenes pendientes</span><b id="metricPending">0</b></article>
+        <article><span>Productos activos</span><b id="metricProducts">0</b></article>
+        <article><span>Categorías</span><b id="metricCategories">0</b></article>
+      </div>
+      <div class="dashboardGrid">
+        <section class="panel"><div class="panelTitle"><h3>Actividad reciente</h3><button class="dark" id="dashboardRefresh">Actualizar</button></div><div id="recentOrders"></div></section>
+        <section class="panel"><h3>Productos destacados</h3><div id="featuredSummary"></div></section>
+      </div>
+    </section>
+   <section id="tab-products" class="tab">
+    <form id="productForm" class="panel formGrid"><input type="hidden" id="pId"><label>Nombre<input id="pName" required></label><label>Categoría<select id="pCategory" required></select></label><label>Precio<input id="pPrice" type="number" min="0" step="0.01" required></label><label>Orden<input id="pSort" type="number" value="0"></label><label class="wide">Descripción<textarea id="pDescription"></textarea></label><label>Imagen<input id="pImageFile" type="file" accept="image/*"></label><div class="previewBox"><img id="pPreview" class="hidden"><span id="pNoImage">Sin imagen</span></div><label class="check"><input id="pFeatured" type="checkbox"> Destacado</label><label class="check"><input id="pActive" type="checkbox" checked> Visible</label><div class="wide actions"><button class="primary">Guardar producto</button><button type="button" class="dark" id="clearProduct">Limpiar</button><button type="button" class="danger hidden" id="removeProductImage">Quitar imagen</button></div></form>
+    <div class="adminToolbar">
+      <input id="adminProductSearch" placeholder="Buscar producto...">
+      <select id="adminProductFilter">
+        <option value="all">Todos</option>
+        <option value="visible">Visibles</option>
+        <option value="hidden">Ocultos</option>
+        <option value="featured">Destacados</option>
+      </select>
+      <span id="adminProductCount"></span>
+    </div>
+    <div id="adminProducts" class="adminList"></div>
+   </section>
+   <section id="tab-categories" class="tab hidden"><form id="categoryForm" class="panel inlineForm"><input type="hidden" id="cId"><input id="cName" placeholder="Nombre de la categoría" required><input id="cSort" type="number" value="0" placeholder="Orden"><label class="check"><input id="cActive" type="checkbox" checked> Activa</label><button class="primary">Guardar</button><button type="button" class="dark" id="clearCategory">Limpiar</button></form><div id="adminCategories" class="adminList"></div></section>
+<section id="tab-kitchen" class="tab hidden">
+      <div class="kitchenToolbar">
+        <div>
+          <h2>Pantalla de cocina</h2>
+          <p>Los pedidos nuevos aparecen automáticamente.</p>
         </div>
-      </section>
+        <div class="kitchenActions">
+          <label class="check"><input id="kitchenSound" type="checkbox" checked> Sonido</label>
+          <button class="dark" id="refreshKitchen">Actualizar</button>
+          <button class="primary" id="fullscreenKitchen">Pantalla completa</button>
+        </div>
+      </div>
+      <div class="kitchenBoard" id="kitchenBoard">
+        <section class="kitchenColumn">
+          <header><span class="statusDot pendingDot"></span><h3>Nuevos</h3><b id="kitchenPendingCount">0</b></header>
+          <div id="kitchenPending" class="kitchenCards"></div>
+        </section>
+        <section class="kitchenColumn">
+          <header><span class="statusDot preparingDot"></span><h3>Preparando</h3><b id="kitchenPreparingCount">0</b></header>
+          <div id="kitchenPreparing" class="kitchenCards"></div>
+        </section>
+        <section class="kitchenColumn">
+          <header><span class="statusDot readyDot"></span><h3>Listos</h3><b id="kitchenReadyCount">0</b></header>
+          <div id="kitchenReady" class="kitchenCards"></div>
+        </section>
+      </div>
+    </section>
 
-      <section id="view-staff" class="view hidden">
-        <div class="cards staff-metrics">
-          <article><span>Empleados activos</span><strong id="staffActiveCount">0</strong></article>
-          <article><span>En turno</span><strong id="staffOnShiftCount">0</strong></article>
-          <article><span>Cajeros</span><strong id="staffCashierCount">0</strong></article>
-          <article><span>Meseros</span><strong id="staffWaiterCount">0</strong></article>
+
+   <section id="tab-pos" class="tab hidden">
+      <div class="posHeader">
+        <div>
+          <h2>Punto de venta</h2>
+          <p>Crea la orden, envíala a cocina y realiza el cobro cuando el cliente esté listo.</p>
         </div>
-        <div class="grid-two">
-          <section class="panel">
-            <h3>Nuevo empleado</h3>
-            <form id="staffForm" class="form-grid">
-              <input name="name" placeholder="Nombre completo" required>
-              <select name="role">
-                <option value="cashier">Cajero</option>
-                <option value="waiter">Mesero</option>
-                <option value="kitchen">Cocina</option>
-                <option value="admin">Administrador</option>
+        <div class="posHeaderStats">
+          <span>Cajero activo</span>
+          <b id="activeCashierName">Sin seleccionar</b>
+          <span>Venta actual</span>
+          <strong id="posHeaderTotal">$0.00</strong>
+        </div>
+      </div>
+
+      <div class="posLayout">
+        <section class="posCatalog panel">
+          <div class="posCatalogTop">
+            <input id="posSearch" placeholder="Buscar producto...">
+            <select id="posCategory"><option value="all">Todas las categorías</option></select>
+          </div>
+          <div id="posProducts" class="posProductGrid"></div>
+        </section>
+
+        <aside class="posTicket panel">
+          <div class="posTicketTitle">
+            <div><span class="eyebrow">ORDEN DE MOSTRADOR</span><h3>Nueva venta</h3></div>
+            <button class="danger posClearBtn" id="posClear">Vaciar</button>
+          </div>
+
+          <div id="posCart" class="posCart"></div>
+
+          <div class="posTotals">
+            <div><span>Subtotal</span><b id="posSubtotal">$0.00</b></div>
+            <div><span>Total</span><strong id="posTotal">$0.00</strong></div>
+          </div>
+
+          <div class="posForm">
+            <label>Cliente
+              <input id="posCustomer" placeholder="Consumidor final">
+            </label>
+            <label>Teléfono
+              <input id="posPhone" placeholder="Opcional">
+            </label>
+            <label>Cajero
+              <select id="posCashier"><option value="">Seleccionar cajero</option></select>
+            </label>
+            <label>Mesero
+              <select id="posWaiter"><option value="">Sin mesero</option></select>
+            </label>
+            <label>Tipo de pedido
+              <select id="posOrderType">
+                <option value="local">En el local</option>
+                <option value="pickup">Para llevar</option>
               </select>
-              <input name="phone" placeholder="Teléfono">
-              <input name="hire_date" type="date">
-              <input name="pin" type="password" inputmode="numeric" maxlength="6" placeholder="PIN de 4 a 6 dígitos" required>
-              <textarea name="notes" placeholder="Observaciones"></textarea>
-              <button class="primary">Crear empleado</button>
-            </form>
-          </section>
-          <section class="panel">
-            <div class="panel-head">
-              <div><h3>Personal</h3><small>Edita cargos, PIN y disponibilidad.</small></div>
-              <button onclick="loadStaffAdmin()">Actualizar</button>
+            </label>
+            <div class="paymentLaterNotice"><b>Pago pendiente</b><span>El cobro se realizará después en esta misma Caja.</span></div>
+            <label class="wide">Notas
+              <textarea id="posNotes" placeholder="Sin cebolla, extra salsa, etc."></textarea>
+            </label>
+          </div>
+
+          <button class="primary posChargeBtn" id="posCharge">Enviar a cocina</button>
+        </aside>
+      </div>
+
+      <section class="panel posPendingPanel">
+        <div class="panelTitle posPendingHeader">
+          <div>
+            <span class="eyebrow">CAJA DEL LOCAL</span>
+            <h3>Pedidos pendientes de cobro</h3>
+            <p>Selecciona una orden cuando el cliente esté listo para pagar.</p>
+          </div>
+          <div class="posPendingActions">
+            <span class="pendingCount"><b id="posPendingCount">0</b> pendientes</span>
+            <button class="dark" id="refreshPosPending">Actualizar</button>
+          </div>
+        </div>
+        <div id="posPendingOrders" class="posPendingOrders">
+          <div class="notice">Cargando pedidos pendientes...</div>
+        </div>
+      </section>
+    </section>
+
+
+   <section id="tab-inventory" class="tab hidden">
+      <div class="inventoryHeader">
+        <div>
+          <h2>Inventario</h2>
+          <p>Controla ingredientes, stock, compras y recetas de tus productos.</p>
+        </div>
+        <div class="inventorySummary">
+          <div><span>Ingredientes</span><strong id="inventoryTotalCount">0</strong></div>
+          <div><span>Stock bajo</span><strong id="inventoryLowCount">0</strong></div>
+          <div><span>Valor estimado</span><strong id="inventoryValue">$0.00</strong></div>
+        </div>
+      </div>
+
+      <div class="inventoryTabs">
+        <button class="active" data-inventory-view="ingredients">Ingredientes</button>
+        <button data-inventory-view="movements">Entradas y salidas</button>
+        <button data-inventory-view="recipes">Recetas</button>
+      </div>
+
+      <div id="inventoryViewIngredients" class="inventoryView">
+        <div class="inventoryGrid">
+          <form id="ingredientForm" class="panel formGrid">
+            <input id="ingredientId" type="hidden">
+            <h3 class="wide">Nuevo ingrediente</h3>
+            <label class="wide">Nombre<input id="ingredientName" required placeholder="Ej. Carne de hamburguesa"></label>
+            <label>Unidad
+              <select id="ingredientUnit">
+                <option value="unidad">Unidad</option>
+                <option value="g">Gramos (g)</option>
+                <option value="kg">Kilogramos (kg)</option>
+                <option value="ml">Mililitros (ml)</option>
+                <option value="l">Litros (L)</option>
+                <option value="porción">Porción</option>
+              </select>
+            </label>
+            <label>Costo por unidad<input id="ingredientCost" type="number" min="0" step="0.0001" value="0"></label>
+            <label>Stock actual<input id="ingredientStock" type="number" min="0" step="0.001" value="0"></label>
+            <label>Stock mínimo<input id="ingredientMinimum" type="number" min="0" step="0.001" value="0"></label>
+            <label class="check wide"><input id="ingredientActive" type="checkbox" checked> Ingrediente activo</label>
+            <div class="wide formActions">
+              <button class="primary">Guardar ingrediente</button>
+              <button type="button" class="dark" id="clearIngredient">Limpiar</button>
             </div>
-            <input id="staffSearch" placeholder="Buscar empleado">
-            <div id="staffList" class="staff-list"></div>
+          </form>
+
+          <section class="panel inventoryListPanel">
+            <div class="panelToolbar">
+              <div>
+                <h3>Ingredientes registrados</h3>
+                <small>Los resaltados necesitan reposición.</small>
+              </div>
+              <input id="ingredientSearch" placeholder="Buscar ingrediente...">
+            </div>
+            <div id="ingredientList" class="ingredientList"></div>
           </section>
         </div>
-        <div class="grid-two staff-bottom-grid">
-          <section class="panel">
-            <div class="panel-head"><h3>Turnos de trabajo</h3><button id="refreshShifts">Actualizar</button></div>
-            <div id="shiftAdminList"></div>
+      </div>
+
+      <div id="inventoryViewMovements" class="inventoryView hidden">
+        <div class="inventoryGrid">
+          <form id="movementForm" class="panel formGrid">
+            <h3 class="wide">Registrar movimiento</h3>
+            <label class="wide">Ingrediente<select id="movementIngredient" required></select></label>
+            <label>Tipo
+              <select id="movementType">
+                <option value="purchase">Compra / entrada</option>
+                <option value="adjustment_in">Ajuste de entrada</option>
+                <option value="waste">Merma / desperdicio</option>
+                <option value="adjustment_out">Ajuste de salida</option>
+              </select>
+            </label>
+            <label>Cantidad<input id="movementQuantity" required type="number" min="0.001" step="0.001"></label>
+            <label>Costo unitario<input id="movementUnitCost" type="number" min="0" step="0.0001" value="0"></label>
+            <label>Proveedor<input id="movementSupplier" placeholder="Opcional"></label>
+            <label class="wide">Nota<textarea id="movementNote" placeholder="Factura, motivo del ajuste, etc."></textarea></label>
+            <div class="wide"><button class="primary">Registrar y actualizar stock</button></div>
+          </form>
+
+          <section class="panel inventoryListPanel">
+            <div class="panelToolbar"><div><h3>Historial de movimientos</h3><small>Últimos movimientos registrados.</small></div><button class="dark" id="refreshMovements">Actualizar</button></div>
+            <div id="movementList" class="movementList"></div>
           </section>
-          <section class="panel">
-            <div class="panel-head"><h3>Actividad reciente</h3><button id="refreshActivity">Actualizar</button></div>
-            <div id="staffActivityList"></div>
+        </div>
+      </div>
+
+      <div id="inventoryViewRecipes" class="inventoryView hidden">
+        <div class="inventoryGrid">
+          <form id="recipeForm" class="panel formGrid">
+            <h3 class="wide">Agregar ingrediente a una receta</h3>
+            <label class="wide">Producto<select id="recipeProduct" required></select></label>
+            <label class="wide">Ingrediente<select id="recipeIngredient" required></select></label>
+            <label class="wide">Cantidad consumida por producto<input id="recipeQuantity" required type="number" min="0.001" step="0.001"></label>
+            <div class="wide"><button class="primary">Guardar en receta</button></div>
+            <p class="wide helperText">Ejemplo: para 150 gramos de carne, selecciona gramos y registra 150.</p>
+          </form>
+
+          <section class="panel inventoryListPanel">
+            <div class="panelToolbar">
+              <div><h3>Recetas configuradas</h3><small>El inventario se descuenta al registrar una venta.</small></div>
+              <select id="recipeProductFilter"></select>
+            </div>
+            <div id="recipeList" class="recipeList"></div>
           </section>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section id="view-accounting" class="view hidden">
-        <div class="cards accounting-cards">
-          <article><span>Ingresos del día</span><strong id="accountIncome">$0.00</strong></article>
-          <article><span>Egresos del día</span><strong id="accountExpense">$0.00</strong></article>
-          <article><span>Resultado</span><strong id="accountResult">$0.00</strong></article>
-          <article><span>Por cobrar</span><strong id="receivableTotal">$0.00</strong></article>
-          <article><span>Por pagar</span><strong id="payableTotal">$0.00</strong></article>
+
+
+   <section id="tab-tables" class="tab hidden">
+      <div class="tablesHeader">
+        <div>
+          <h2>Mesas y comandas</h2>
+          <p>Administra mesas, toma pedidos y envíalos directamente a cocina.</p>
         </div>
-
-        <div class="accounting-tabs">
-          <button class="active" data-account-tab="summary">Resumen</button>
-          <button data-account-tab="receivables">Cuentas por cobrar</button>
-          <button data-account-tab="payables">Cuentas por pagar</button>
+        <div class="tablesStats">
+          <div><span>Libres</span><strong id="tablesFreeCount">0</strong></div>
+          <div><span>Ocupadas</span><strong id="tablesBusyCount">0</strong></div>
+          <div><span>Pendientes</span><strong id="tablesPaymentCount">0</strong></div>
         </div>
+      </div>
 
-        <div id="account-tab-summary" class="account-tab-panel">
-          <div class="grid-two">
-            <section class="panel">
-              <div class="panel-head">
-                <div><h3>Registrar egreso</h3><small>Compras, servicios, transporte y otros gastos.</small></div>
-              </div>
-              <form id="expenseForm" class="form-grid">
-                <input name="description" placeholder="Descripción del egreso" required>
-                <input name="amount" type="number" step=".01" min=".01" placeholder="Monto" required>
-                <select name="category">
-                  <option value="Compras">Compras</option>
-                  <option value="Servicios">Servicios</option>
-                  <option value="Transporte">Transporte</option>
-                  <option value="Nómina">Nómina</option>
-                  <option value="Otros">Otros</option>
-                </select>
-                <button class="primary">Registrar egreso</button>
-              </form>
-            </section>
-
-            <section class="panel">
-              <div class="panel-head">
-                <div><h3>Movimientos recientes</h3><small>Ventas cobradas y egresos registrados hoy.</small></div>
-                <button id="refreshAccounting">Actualizar</button>
-              </div>
-              <div id="accountingList"></div>
-              <hr>
-              <div class="panel-head">
-                <div><h3>Métodos de pago</h3><small>Activa o desactiva las opciones disponibles.</small></div>
-                <button id="addPaymentMethod">Agregar</button>
-              </div>
-              <div id="paymentMethodsList"></div>
-            </section>
-          </div>
+      <div class="tablesToolbar panel">
+        <div class="inlineForm">
+          <input id="newTableName" placeholder="Ej. Mesa 1">
+          <input id="newTableSeats" type="number" min="1" value="4" placeholder="Puestos">
+          <button class="primary" id="createTableBtn">Crear mesa</button>
         </div>
-
-        <div id="account-tab-receivables" class="account-tab-panel hidden">
-          <div class="grid-two accounting-management">
-            <section class="panel">
-              <div class="panel-head">
-                <div><h3>Nueva cuenta por cobrar</h3><small>Registra créditos y saldos pendientes de clientes.</small></div>
-              </div>
-              <form id="receivableForm" class="form-grid">
-                <input name="customer_name" placeholder="Cliente" required>
-                <input name="reference" placeholder="Factura o referencia">
-                <input name="description" placeholder="Concepto" required>
-                <input name="total_amount" type="number" step=".01" min=".01" placeholder="Valor total" required>
-                <input name="due_date" type="date">
-                <textarea name="notes" placeholder="Observaciones"></textarea>
-                <button class="primary">Guardar cuenta por cobrar</button>
-              </form>
-            </section>
-            <section class="panel">
-              <div class="panel-head">
-                <div><h3>Cuentas por cobrar</h3><small>Registra abonos y controla saldos pendientes.</small></div>
-                <button id="refreshReceivables">Actualizar</button>
-              </div>
-              <div class="account-filters">
-                <input id="receivableSearch" placeholder="Buscar cliente o referencia">
-                <select id="receivableStatusFilter">
-                  <option value="open">Pendientes</option>
-                  <option value="all">Todas</option>
-                  <option value="paid">Pagadas</option>
-                  <option value="overdue">Vencidas</option>
-                </select>
-              </div>
-              <div id="receivableList"></div>
-            </section>
-          </div>
+        <div class="tableLegend">
+          <span><i class="free"></i>Libre</span>
+          <span><i class="occupied"></i>Ocupada</span>
+          <span><i class="preparing"></i>Preparando</span>
+          <span><i class="payment"></i>Por cobrar</span>
         </div>
+      </div>
 
-        <div id="account-tab-payables" class="account-tab-panel hidden">
-          <div class="grid-two accounting-management">
-            <section class="panel">
-              <div class="panel-head">
-                <div><h3>Nueva cuenta por pagar</h3><small>Registra proveedores, compras y obligaciones.</small></div>
-              </div>
-              <form id="payableForm" class="form-grid">
-                <input name="vendor_name" placeholder="Proveedor" required>
-                <input name="reference" placeholder="Factura o referencia">
-                <input name="description" placeholder="Concepto" required>
-                <input name="total_amount" type="number" step=".01" min=".01" placeholder="Valor total" required>
-                <input name="due_date" type="date">
-                <textarea name="notes" placeholder="Observaciones"></textarea>
-                <button class="primary">Guardar cuenta por pagar</button>
-              </form>
-            </section>
-            <section class="panel">
-              <div class="panel-head">
-                <div><h3>Cuentas por pagar</h3><small>Registra pagos parciales y controla vencimientos.</small></div>
-                <button id="refreshPayables">Actualizar</button>
-              </div>
-              <div class="account-filters">
-                <input id="payableSearch" placeholder="Buscar proveedor o referencia">
-                <select id="payableStatusFilter">
-                  <option value="open">Pendientes</option>
-                  <option value="all">Todas</option>
-                  <option value="paid">Pagadas</option>
-                  <option value="overdue">Vencidas</option>
-                </select>
-              </div>
-              <div id="payableList"></div>
-            </section>
-          </div>
+      <div id="tablesGrid" class="tablesGrid"></div>
+    </section>
+
+
+   <section id="tab-shifts" class="tab hidden">
+      <div class="tablesHeader">
+        <div>
+          <h2>Turnos de trabajo</h2>
+          <p>Control de entrada, salida y ventas realizadas por cada cajero.</p>
         </div>
-      </section>
+        <div class="tablesStats">
+          <div><span>Turnos abiertos</span><strong id="openShiftCount">0</strong></div>
+          <div><span>Ventas del día</span><strong id="shiftSalesCount">0</strong></div>
+          <div><span>Total cobrado</span><strong id="shiftSalesTotal">$0.00</strong></div>
+        </div>
+      </div>
+      <div class="panel shiftToolbar">
+        <button class="primary" id="startShiftBtn">Iniciar turno</button>
+        <button class="danger" id="closeShiftBtn">Cerrar mi turno</button>
+        <button class="dark" id="refreshShiftsBtn">Actualizar</button>
+      </div>
+      <div id="currentShiftCard" class="panel currentShiftCard"></div>
+      <div class="panel">
+        <h3>Historial de turnos</h3>
+        <div class="tableWrap">
+          <table class="dataTable">
+            <thead><tr><th>Empleado</th><th>Rol</th><th>Entrada</th><th>Salida</th><th>Ventas</th><th>Total</th><th>Estado</th></tr></thead>
+            <tbody id="shiftHistoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+   </section>
 
+   
+<section id="tab-finance" class="tab hidden">
+  <div class="tablesHeader">
+    <div><h2>Contabilidad</h2><p>Ingresos, egresos y resultado del negocio.</p></div>
+    <div class="tablesStats">
+      <div><span>Ingresos</span><strong id="financeIncome">$0.00</strong></div>
+      <div><span>Egresos</span><strong id="financeExpense">$0.00</strong></div>
+      <div><span>Resultado</span><strong id="financeBalance">$0.00</strong></div>
+    </div>
+  </div>
+  <div class="dashboardGrid financeGrid">
+    <form id="financeForm" class="panel formGrid">
+      <input type="hidden" id="financeId">
+      <h3 class="wide">Nuevo movimiento</h3>
+      <label>Tipo<select id="financeType"><option value="income">Ingreso</option><option value="expense">Egreso</option></select></label>
+      <label>Categoría<select id="financeCategory">
+        <option>Ventas</option><option>Compra de insumos</option><option>Proveedores</option>
+        <option>Sueldos</option><option>Servicios</option><option>Transporte</option>
+        <option>Mantenimiento</option><option>Publicidad</option><option>Otros</option>
+      </select></label>
+      <label>Monto<input id="financeAmount" type="number" min="0.01" step="0.01" required></label>
+      <label>Método<select id="financeMethod"><option value="cash">Efectivo</option><option value="transfer">Transferencia</option><option value="card">Tarjeta</option><option value="other">Otro</option></select></label>
+      <label>Fecha<input id="financeDate" type="date" required></label>
+      <label>Referencia<input id="financeReference" placeholder="Factura o comprobante"></label>
+      <label class="wide">Descripción<textarea id="financeDescription" required></textarea></label>
+      <div class="wide"><button class="primary">Guardar movimiento</button><button type="button" class="dark" id="clearFinance">Limpiar</button></div>
+    </form>
+    <section class="panel">
+      <div class="panelTitle"><h3>Movimientos</h3><div><input id="financeMonth" type="month"><button class="dark" id="refreshFinance">Actualizar</button></div></div>
+      <div class="tableWrap"><table class="dataTable">
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th>Método</th><th>Monto</th><th></th></tr></thead>
+        <tbody id="financeBody"></tbody>
+      </table></div>
     </section>
   </div>
+</section>
 
-
-  
-  <div id="staffEditModal" class="modal hidden">
-    <div class="modal-card">
-      <button id="closeStaffEdit" class="modal-close">×</button>
-      <span class="eyebrow">GESTIÓN DE PERSONAL</span>
-      <h2>Editar empleado</h2>
-      <input id="editStaffId" type="hidden">
-      <label>Nombre<input id="editStaffName"></label>
-      <label>Cargo<select id="editStaffRole"><option value="cashier">Cajero</option><option value="waiter">Mesero</option><option value="kitchen">Cocina</option><option value="admin">Administrador</option></select></label>
-      <label>Teléfono<input id="editStaffPhone"></label>
-      <label>Fecha de ingreso<input id="editStaffHireDate" type="date"></label>
-      <label>Nuevo PIN <small>(déjalo vacío para conservarlo)</small><input id="editStaffPin" type="password" inputmode="numeric" maxlength="6"></label>
-      <label>Observaciones<textarea id="editStaffNotes"></textarea></label>
-      <button id="saveStaffEdit" class="primary payment-confirm">Guardar cambios</button>
+<section id="tab-customers" class="tab hidden">
+  <div class="tablesHeader">
+    <div><h2>Base de clientes</h2><p>Información, historial y fidelización.</p></div>
+    <div class="tablesStats">
+      <div><span>Clientes</span><strong id="customerCount">0</strong></div>
+      <div><span>Frecuentes</span><strong id="frequentCount">0</strong></div>
+      <div><span>VIP</span><strong id="vipCount">0</strong></div>
     </div>
   </div>
+  <div class="dashboardGrid customersGrid">
+    <form id="customerFormAdmin" class="panel formGrid">
+      <input type="hidden" id="customerIdAdmin">
+      <h3 class="wide">Agregar o editar cliente</h3>
+      <label>Nombre<input id="customerFullName" required></label>
+      <label>Teléfono / WhatsApp<input id="customerPhoneAdmin" required></label>
+      <label>Correo<input id="customerEmailAdmin" type="email"></label>
+      <label>Cumpleaños<input id="customerBirthday" type="date"></label>
+      <label class="wide">Dirección<textarea id="customerAddressAdmin"></textarea></label>
+      <label>Clasificación<select id="customerTier"><option value="new">Nuevo</option><option value="frequent">Frecuente</option><option value="vip">VIP</option></select></label>
+      <label>Puntos<input id="customerPoints" type="number" min="0" value="0"></label>
+      <label class="wide">Notas<textarea id="customerNotesAdmin"></textarea></label>
+      <label class="check"><input id="customerActiveAdmin" type="checkbox" checked> Activo</label>
+      <div class="wide"><button class="primary">Guardar cliente</button><button type="button" class="dark" id="clearCustomerAdmin">Limpiar</button></div>
+    </form>
+    <section class="panel">
+      <div class="panelTitle"><h3>Clientes registrados</h3><input id="customerAdminSearch" placeholder="Buscar nombre, teléfono o correo"></div>
+      <div id="customerAdminList" class="customerAdminList"></div>
+    </section>
+  </div>
+</section>
 
-  <div id="cashCloseModal" class="modal hidden">
-    <div class="modal-card cash-close-card">
-      <button id="closeCashClose" class="modal-close">×</button>
-      <span class="eyebrow">CIERRE DE CAJA</span>
-      <h2 id="cashCloseTitle">Resumen del día</h2>
-      <div class="cash-close-summary">
-        <div><span>Ventas totales</span><strong id="cashCloseSales">$0.00</strong></div>
-        <div><span>Egresos</span><strong id="cashCloseExpenses">$0.00</strong></div>
-        <div><span>Resultado</span><strong id="cashCloseResult">$0.00</strong></div>
+<section id="tab-promotions" class="tab hidden">
+  <div class="tablesHeader"><div><h2>Promociones</h2><p>Crea campañas visibles en la web.</p></div></div>
+  <div class="dashboardGrid">
+    <form id="promotionForm" class="panel formGrid">
+      <input type="hidden" id="promotionId">
+      <h3 class="wide">Crear promoción</h3>
+      <label>Título<input id="promotionTitle" required></label>
+      <label>Etiqueta<input id="promotionBadge" placeholder="2x1, Nuevo, Oferta"></label>
+      <label class="wide">Descripción<textarea id="promotionDescription" required></textarea></label>
+      <label>Precio promocional<input id="promotionPrice" type="number" min="0" step="0.01"></label>
+      <label>Imagen URL<input id="promotionImage" placeholder="https://..."></label>
+      <label>Inicio<input id="promotionStart" type="date"></label>
+      <label>Final<input id="promotionEnd" type="date"></label>
+      <label>Enlace<input id="promotionLink" placeholder="/pagina/combo-del-mes"></label>
+      <label>Orden<input id="promotionSort" type="number" value="0"></label>
+      <label class="check"><input id="promotionFeatured" type="checkbox"> Destacada en inicio</label>
+      <label class="check"><input id="promotionActive" type="checkbox" checked> Publicada</label>
+      <div class="wide"><button class="primary">Guardar promoción</button><button type="button" class="dark" id="clearPromotion">Limpiar</button></div>
+    </form>
+    <section class="panel"><h3>Promociones creadas</h3><div id="adminPromotionList" class="adminList"></div></section>
+  </div>
+</section>
+
+<section id="tab-pages" class="tab hidden">
+  <div class="tablesHeader"><div><h2>Subpáginas</h2><p>Crea páginas para campañas, eventos, información y promociones.</p></div></div>
+  <div class="dashboardGrid">
+    <form id="pageForm" class="panel formGrid">
+      <input type="hidden" id="pageId">
+      <h3 class="wide">Editor de página</h3>
+      <label>Título<input id="pageTitle" required></label>
+      <label>Dirección URL<input id="pageSlug" required placeholder="combo-del-mes"></label>
+      <label class="wide">Resumen<textarea id="pageSummary"></textarea></label>
+      <label class="wide">Imagen principal URL<input id="pageHeroImage" placeholder="https://..."></label>
+      <label class="wide">Contenido<textarea id="pageContent" rows="12" required placeholder="Escribe el contenido de la página..."></textarea></label>
+      <label>Texto del botón<input id="pageButtonText" placeholder="Pedir ahora"></label>
+      <label>Enlace del botón<input id="pageButtonLink" placeholder="/app"></label>
+      <label>Orden<input id="pageSort" type="number" value="0"></label>
+      <label class="check"><input id="pageShowMenu" type="checkbox"> Mostrar en navegación</label>
+      <label class="check"><input id="pagePublished" type="checkbox" checked> Publicada</label>
+      <div class="wide"><button class="primary">Guardar página</button><button type="button" class="dark" id="clearPage">Limpiar</button></div>
+    </form>
+    <section class="panel"><h3>Páginas creadas</h3><div id="adminPageList" class="adminList"></div></section>
+  </div>
+</section>
+
+<section id="tab-staff" class="tab hidden">
+      <div class="staffHeader">
+        <div>
+          <h2>Personal</h2>
+          <p>Crea meseros, cajeros y personal de cocina para organizar las operaciones.</p>
+        </div>
+        <div class="staffStats">
+          <div><span>Activos</span><strong id="staffActiveCount">0</strong></div>
+          <div><span>Meseros</span><strong id="staffWaiterCount">0</strong></div>
+          <div><span>Cajeros</span><strong id="staffCashierCount">0</strong></div>
+        </div>
       </div>
-      <div id="cashCloseMethods" class="summary-list"></div>
-      <label>Efectivo contado en caja
-        <input id="cashCounted" type="number" min="0" step=".01" value="0">
+
+      <div class="staffLayout">
+        <form id="staffForm" class="panel formGrid staffForm" autocomplete="off">
+          <input id="staffId" type="hidden">
+          <h3 class="wide">Registrar empleado</h3>
+          <label class="wide">Nombre completo
+            <input id="staffName" required placeholder="Ej. Carlos Mendoza">
+          </label>
+          <label>Rol
+            <select id="staffRole">
+              <option value="waiter">Mesero</option>
+              <option value="cashier">Cajero</option>
+              <option value="kitchen">Cocina</option>
+            </select>
+          </label>
+          <label>Teléfono
+            <input id="staffPhone" name="employee_phone_number" type="tel" inputmode="tel" autocomplete="off" placeholder="Ej. 0991234567">
+          </label>
+          <label class="wide">PIN de acceso
+            <input id="staffPin" name="employee_access_pin" autocomplete="new-password" type="password" inputmode="numeric" maxlength="6" placeholder="4 a 6 números">
+          </label>
+          <label class="check wide">
+            <input id="staffActive" type="checkbox" checked> Empleado activo
+          </label>
+          <div class="wide formActions">
+            <button class="primary">Guardar empleado</button>
+            <button type="button" class="dark" id="clearStaff">Limpiar</button>
+          </div>
+          <p class="wide helperText">El PIN se guarda cifrado en Supabase. Al editar, déjalo vacío para conservar el PIN actual.</p>
+        </form>
+
+        <section class="panel staffListPanel">
+          <div class="panelToolbar">
+            <div>
+              <h3>Empleados registrados</h3>
+              <small>Administra roles y disponibilidad.</small>
+            </div>
+            <div class="staffFilters">
+              <div class="staffSearchBox"><input id="staffSearch" name="employee_directory_search" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Buscar empleado..."><button type="button" id="clearStaffSearch" class="dark">Limpiar</button></div>
+              <select id="staffRoleFilter">
+                <option value="all">Todos los roles</option>
+                <option value="waiter">Meseros</option>
+                <option value="cashier">Cajeros</option>
+                <option value="kitchen">Cocina</option>
+              </select>
+            </div>
+          </div>
+          <div id="staffList" class="staffList"></div>
+        </section>
+      </div>
+    </section>
+
+   <section id="tab-settings" class="tab hidden"><form id="settingsForm" class="panel formGrid"><label>Nombre<input id="sName"></label><label>WhatsApp<input id="sWhatsapp" placeholder="593999999999"></label><label class="wide">Descripción<textarea id="sDescription"></textarea></label><label>Dirección<input id="sAddress"></label><label>Horario<input id="sSchedule"></label><label>Costo delivery<input id="sDelivery" type="number" min="0" step="0.01"></label><label>Pedido mínimo<input id="sMinimum" type="number" min="0" step="0.01"></label><label class="check"><input id="sAccepting" type="checkbox"> Recibir pedidos</label><div class="wide"><button class="primary">Guardar cambios</button></div></form></section>
+ </div>
+</section>
+
+<div id="loginModal" class="modal adminLoginVisible"><div class="modalCard loginCard"><button class="close" data-close="loginModal">×</button><img src="media/logo.png" alt="Mordisco"><span class="eyebrow">MORDISCO OS</span><h2>Acceso de administrador</h2><p>Ingresa con tu correo y contraseña de administración.</p><form id="loginForm"><input id="loginEmail" type="email" placeholder="Correo" required><input id="loginPassword" type="password" placeholder="Contraseña" required><button class="primary">Ingresar</button></form><small id="loginMessage"></small></div></div>
+
+<div id="cartDrawer" class="drawer"><div class="drawerHead"><h2>Tu pedido</h2><button id="closeCart">×</button></div><div id="cartItems"></div><div class="totals"><p><span>Subtotal</span><b id="subtotal">$0.00</b></p><p><span>Delivery</span><b id="deliveryTotal">$0.00</b></p><p class="grand"><span>Total</span><b id="grandTotal">$0.00</b></p></div><form id="orderForm"><input id="customerName" placeholder="Nombre" required><input id="customerPhone" placeholder="Teléfono" required><select id="orderType"><option value="delivery">Delivery</option><option value="pickup">Retiro</option><option value="local">En el local</option></select><input id="customerAddress" placeholder="Dirección de entrega"><select id="paymentMethod"><option value="cash">Efectivo</option><option value="transfer">Transferencia</option><option value="card">Tarjeta</option></select><textarea id="orderNotes" placeholder="Notas del pedido"></textarea><button class="primary">Confirmar pedido</button></form></div>
+
+
+<div id="chargeOrderModal" class="modal hidden">
+  <div class="modalCard chargeOrderCard">
+    <button class="close" data-close="chargeOrderModal">×</button>
+    <span class="eyebrow">COBRO DE VENTA</span>
+    <h2 id="chargeOrderTitle">Cobrar pedido</h2>
+
+    <div class="chargeSummary">
+      <div><span>Subtotal</span><b id="chargeSubtotal">$0.00</b></div>
+      <div><span>Descuento</span><b id="chargeDiscountAmount">− $0.00</b></div>
+      <div class="chargeOrderTotal"><span>Total final</span><strong id="chargeOrderTotal">$0.00</strong></div>
+    </div>
+
+    <div class="discountControls">
+      <label>Tipo de descuento
+        <select id="chargeDiscountType">
+          <option value="none">Sin descuento</option>
+          <option value="percent">Porcentaje (%)</option>
+          <option value="fixed">Valor fijo ($)</option>
+        </select>
       </label>
-      <div class="total-row"><span>Diferencia de efectivo</span><strong id="cashDifference">$0.00</strong></div>
-      <textarea id="cashCloseNotes" placeholder="Observaciones del cierre"></textarea>
-      <div class="cash-close-actions">
-        <button id="printCashClose">Imprimir</button>
-        <button id="saveCashClose" class="primary">Guardar cierre</button>
-      </div>
+      <label>Valor del descuento
+        <input id="chargeDiscountValue" type="number" min="0" step="0.01" value="0" disabled>
+      </label>
+    </div>
+
+    <label>Método de pago
+      <select id="chargePaymentMethod">
+        <option value="cash">Efectivo</option>
+        <option value="card">Tarjeta</option>
+        <option value="transfer">Transferencia</option>
+        <option value="deuna">DeUna</option>
+        <option value="ahorita">Ahorita</option>
+      </select>
+    </label>
+
+    <label id="chargeReceivedWrap">Efectivo recibido
+      <input id="chargeReceived" type="number" min="0" step="0.01" value="0">
+    </label>
+    <div class="chargeChange"><span>Cambio</span><strong id="chargeChange">$0.00</strong></div>
+    <button class="primary full" id="confirmChargeOrder">Confirmar cobro</button>
+  </div>
+</div>
+
+<div id="receiptModal" class="modal hidden">
+  <div class="modalCard receiptModalCard">
+    <button class="close" data-close="receiptModal">×</button>
+    <div id="receiptContent" class="receiptPaper"></div>
+    <div class="receiptActions">
+      <button class="dark" id="printReceipt">Imprimir comprobante</button>
+      <button class="primary" data-close="receiptModal">Nueva venta</button>
     </div>
   </div>
+</div>
 
-  <div id="paymentModal" class="modal hidden">
-    <div class="modal-card">
-      <button id="closePayment" class="modal-close">×</button>
-      <span class="eyebrow">COBRO EN CAJA</span>
-      <h2 id="paymentTitle">Cobrar orden</h2>
-      <div class="payment-total"><span>Total</span><strong id="paymentTotal">$0.00</strong></div>
-      <label>Método de pago</label>
-      <div id="paymentMethodButtons" class="payment-method-grid"></div>
-      <select id="paymentMethod" class="hidden"><option value="">Cargando métodos…</option></select>
-      <label id="receivedWrap">Efectivo recibido<input id="paymentReceived" type="number" step=".01"></label>
-      <div id="changeRow" class="total-row"><span>Cambio</span><strong id="paymentChange">$0.00</strong></div>
-      <button id="confirmPayment" class="primary payment-confirm">Confirmar cobro</button>
-      <p id="paymentStatusText" class="payment-status-text">Selecciona una forma de pago.</p>
+
+<div id="employeeLoginModal" class="modal hidden">
+  <div class="modalCard employeeLoginCard">
+    <button class="close" data-close="employeeLoginModal">×</button>
+    <div class="employeeLoginLogo"><img src="mordisco-logo.png" alt="Mordisco"></div>
+    <span class="eyebrow">ACCESO DEL PERSONAL</span>
+    <h2>Ingresa con tu PIN</h2>
+    <label>Empleado<select id="employeeLoginStaff"></select></label>
+    <label>PIN<input id="employeeLoginPin" type="password" inputmode="numeric" maxlength="6" placeholder="4 a 6 números"></label>
+    <button class="primary full" id="employeeLoginSubmit">Entrar</button>
+  </div>
+</div>
+
+<div id="tableOrderModal" class="modal hidden">
+  <div class="modalCard tableOrderCard">
+    <button class="close" data-close="tableOrderModal">×</button>
+    <div class="tableOrderHead">
+      <div><span class="eyebrow">COMANDA</span><h2 id="tableOrderTitle">Mesa</h2></div>
+      <span id="tableOrderStatus" class="statusBadge">Libre</span>
+    </div>
+    <div class="tableOrderLayout">
+      <section>
+        <div class="posCatalogTop">
+          <input id="tableProductSearch" placeholder="Buscar producto...">
+          <select id="tableCategory"><option value="all">Todas las categorías</option></select>
+        </div>
+        <div id="tableProducts" class="posProductGrid"></div>
+      </section>
+      <aside class="tableTicket">
+        <div id="tableCart" class="posCart"></div>
+        <label>Cliente<input id="tableCustomer" placeholder="Opcional"></label>
+        <label>Notas<textarea id="tableNotes" placeholder="Indicaciones para cocina"></textarea></label>
+        <div class="posTotals"><div><span>Total</span><strong id="tableTotal">$0.00</strong></div></div>
+        <button class="primary full" id="sendTableOrder">Enviar a cocina</button>
+        <button class="dark full" id="markTablePayment">Marcar por cobrar</button>
+        <button class="success full" id="freeTable">Liberar mesa</button>
+      </aside>
     </div>
   </div>
+</div>
 
-  <script src="/app.js?v=16.11.0"></script>
-</body>
-</html>
+
+<div id="shiftPinModal" class="modal hidden">
+  <div class="modalCard employeeLoginCard">
+    <button class="close" data-close="shiftPinModal">×</button>
+    <span class="eyebrow">CONTROL DE TURNO</span>
+    <h2 id="shiftPinTitle">Confirmar PIN</h2>
+    <p id="shiftPinHelp">Ingresa tu PIN para continuar.</p>
+    <label>PIN<input id="shiftPinInput" type="password" inputmode="numeric" maxlength="6" placeholder="4 a 6 números"></label>
+    <label id="openingCashLabel">Efectivo inicial<input id="openingCashInput" type="number" min="0" step="0.01" value="0"></label>
+    <label id="closingCashLabel" class="hidden">Efectivo contado<input id="closingCashInput" type="number" min="0" step="0.01" value="0"></label>
+    <button class="primary full" id="shiftPinConfirm">Confirmar</button>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+<script src="app.js?v=15.2.0"></script>
+</body></html>
