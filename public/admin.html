@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#11100e">
 <title>Mordisco Fast Food</title>
-<link rel="stylesheet" href="styles.css?v=15.2.0">
+<link rel="stylesheet" href="styles.css?v=15.3.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -65,7 +65,56 @@
       </div>
     </section>
    <section id="tab-products" class="tab">
-    <form id="productForm" class="panel formGrid"><input type="hidden" id="pId"><label>Nombre<input id="pName" required></label><label>Categoría<select id="pCategory" required></select></label><label>Precio<input id="pPrice" type="number" min="0" step="0.01" required></label><label>Orden<input id="pSort" type="number" value="0"></label><label class="wide">Descripción<textarea id="pDescription"></textarea></label><label>Imagen<input id="pImageFile" type="file" accept="image/*"></label><div class="previewBox"><img id="pPreview" class="hidden"><span id="pNoImage">Sin imagen</span></div><label class="check"><input id="pFeatured" type="checkbox"> Destacado</label><label class="check"><input id="pActive" type="checkbox" checked> Visible</label><div class="wide actions"><button class="primary">Guardar producto</button><button type="button" class="dark" id="clearProduct">Limpiar</button><button type="button" class="danger hidden" id="removeProductImage">Quitar imagen</button></div></form>
+    <form id="productForm" class="panel formGrid" autocomplete="off">
+      <input type="hidden" id="pId">
+      <div class="wide productFormTitle">
+        <div>
+          <span class="eyebrow">CATÁLOGO</span>
+          <h2 id="productFormHeading">Crear producto</h2>
+        </div>
+        <span id="productEditBadge" class="editBadge hidden">Editando producto</span>
+      </div>
+
+      <label>Nombre
+        <input id="pName" required maxlength="100">
+      </label>
+
+      <label>Categoría
+        <select id="pCategory" required></select>
+      </label>
+
+      <label>Precio
+        <input id="pPrice" type="number" min="0" step="0.01" required>
+      </label>
+
+      <label>Orden
+        <input id="pSort" type="number" value="0">
+      </label>
+
+      <label class="wide">Descripción
+        <textarea id="pDescription" maxlength="500"></textarea>
+      </label>
+
+      <label class="productImagePicker">
+        Subir imagen desde la computadora
+        <input id="pImageFile" type="file" accept="image/png,image/jpeg,image/webp">
+        <small>PNG, JPG o WEBP. Máximo 5 MB.</small>
+      </label>
+
+      <div class="previewBox">
+        <img id="pPreview" class="hidden" alt="Vista previa del producto">
+        <span id="pNoImage">Sin imagen seleccionada</span>
+      </div>
+
+      <label class="check"><input id="pFeatured" type="checkbox"> Destacado</label>
+      <label class="check"><input id="pActive" type="checkbox" checked> Visible</label>
+
+      <div class="wide actions">
+        <button class="primary" id="saveProductBtn">Guardar producto</button>
+        <button type="button" class="dark" id="clearProduct">Cancelar / Limpiar</button>
+        <button type="button" class="danger hidden" id="removeProductImage">Quitar imagen</button>
+      </div>
+    </form>
     <div class="adminToolbar">
       <input id="adminProductSearch" placeholder="Buscar producto...">
       <select id="adminProductFilter">
@@ -656,5 +705,5 @@
   </div>
 </div>
 <div id="toast" class="toast"></div>
-<script src="app.js?v=15.2.0"></script>
+<script src="app.js?v=15.3.0"></script>
 </body></html>
